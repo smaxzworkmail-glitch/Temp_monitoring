@@ -1,5 +1,10 @@
 #include "Sensors.h"
+#include "NTP.h"
 #include <algorithm>
+
+unsigned long lastReadTime = 0;
+unsigned long lastMinTime = 0;
+unsigned long last15MinTime = 0;
 
 OneWire oneWire;
 DallasTemperature dallasSensors(&oneWire);
@@ -129,6 +134,64 @@ void addDayPoint() {
         if (s.history.dayIdx == 0) s.history.dayFull = true;
     }
 }
+
+void handleSensors() {
+    unsigned long now = millis();
+
+    // 1. Опитування фізичних датчиків (раз на 30 сек)
+    if (now - lastReadTime >= 30000) {
+        updateTemperatures(); // Твоя існуюча функція
+        
+        // Накопичуємо дані для середнього
+        for (auto &s : sensorList) {
+            if (s.currentTemp > -50.0) {
+                s.tempAccumulator += s.currentTemp;
+                s.samplesCount++;
+            }
+        }
+        lastReadTime = now;
+
+        // Лог у консоль (можна вимкнути потім)
+        Serial.printf("[%s] Датчики оновлено. Замірів у буфері: %d\n", 
+                      getTimeStr().c_str(), sensorList[0].samplesCount);
+    }
+
+    // Якщо час не синхронізовано — далі не йдемо, графіки не псуємо
+    if (!isTimeSynced()) {
+        lastMinTime = now;
+        last15MinTime = now;
+        return;
+    }
+
+    // 2. Точка в годинний графік (раз на хвилину)
+    if (now - lastMinTime >= 60000) {
+        for (auto &s : sensorList) {
+            float avg = (s.samplesCount > 0) ? s.tempAccumulator / s.samplesCount : s.currentTemp;
+            
+            s.history.hourData[s.history.hourIdx] = avg;
+            s.history.hourIdx = (s.history.hourIdx + 1) % MAX_HOUR_POINTS;
+            if (s.history.hourIdx == 0) s.history.hourFull = true;
+
+            // Скидаємо накопичувач ТІЛЬКИ після запису в хвилинний графік
+            s.tempAccumulator = 0;
+            s.samplesCount = 0;
+        }
+        lastMinTime = now;
+        Serial.println("-> Середнє за хвилину записано в графік.");
+    }
+
+    // 3. Точка в добовий графік (раз на 15 хв)
+    if (now - last15MinTime >= 900000) {
+        for (auto &s : sensorList) {
+            // Для доби беремо просто останнє актуальне середнє
+            s.history.dayData[s.history.dayIdx] = s.currentTemp; 
+            s.history.dayIdx = (s.history.dayIdx + 1) % MAX_DAY_POINTS;
+            if (s.history.dayIdx == 0) s.history.dayFull = true;
+        }
+        last15MinTime = now;
+    }
+}
+
 
 std::vector<TemperatureSensor>& getSensors() {
     return sensorList;

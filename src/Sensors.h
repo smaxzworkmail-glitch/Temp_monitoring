@@ -25,11 +25,14 @@ struct TemperatureSensor {
     float currentTemp;
     float lastValues[5]; // Останні 5 значень для фільтра
     int filterIdx = 0;
+    float tempAccumulator = 0;
+    int samplesCount = 0;
     String color; // Для графіків
     SensorHistory history;
 };
 
 // Функції модуля
+void handleSensors();
 void initSensors(uint8_t pin);
 void updateTemperatures();
 void addHourPoint(); // Додати точку для графіка години
