@@ -1,21 +1,10 @@
 #include "WebInterface.h"
-#include <WiFi.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 
 AsyncWebServer server(80);
 
 void initWebInterface() {
-    // Налаштування WiFi (замініть на свої дані або зробіть точку доступу)
-    WiFi.begin("drugabulka", "2bulka2023");
-    
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-    }
-    Serial.println("\nWiFi підключено!");
-    Serial.print("IP адреса: ");
-    Serial.println(WiFi.localIP());
 
     // Головна сторінка
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
