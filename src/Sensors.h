@@ -22,6 +22,8 @@ struct SensorHistory {
 struct TemperatureSensor {
     DeviceAddress address;
     String name;
+    float dayAccumulator = 0;
+    int daySamplesCount = 0;
     float currentTemp;
     float lastValues[5]; // Останні 5 значень для фільтра
     int filterIdx = 0;

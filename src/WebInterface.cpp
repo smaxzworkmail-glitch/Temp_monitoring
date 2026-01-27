@@ -1,8 +1,20 @@
 #include "WebInterface.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include "NTP.h"
+#include <deque>
 
 AsyncWebServer server(80);
+
+
+std::deque<String> systemLogs;
+
+// Функція для додавання нового логу
+void addLog(String msg) {
+    String timestampedMsg = "[" + getTimeStr() + "] " + msg;
+    systemLogs.push_back(timestampedMsg);
+    if (systemLogs.size() > 20) systemLogs.pop_front(); // Тримаємо останні 20 записів
+}
 
 void initWebInterface() {
 
@@ -10,6 +22,33 @@ void initWebInterface() {
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
         request->send(LittleFS, "/index.html", "text/html");
     });
+
+
+server.on("/api/terminal", HTTP_GET, [](AsyncWebServerRequest *request){
+    JsonDocument doc;
+    doc["uptime"] = millis() / 1000;
+    doc["free_heap"] = ESP.getFreeHeap();
+    
+    JsonArray logs = doc["last_logs"].to<JsonArray>();
+    for (auto const& log : systemLogs) {
+        logs.add(log);
+    }
+    
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+});
+
+
+server.on("/api/slots", HTTP_GET, [](AsyncWebServerRequest *request){
+    JsonDocument doc;
+    for (auto &s : getSensors()) {
+        doc[s.name] = (s.currentTemp < -50) ? "error" : String(s.currentTemp, 2);
+    }
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+});
 
     // API для отримання даних датчиків (JSON)
     server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest *request){
