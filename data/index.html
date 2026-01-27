@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Моніторинг</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #f4f4f4; }
+        .container { width: 90%; max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .sensor-val { font-size: 24px; font-weight: bold; color: #007bff; margin: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mоніторинг</h1>
+        <div id="values"></div>
+        <canvas id="tempChart"></canvas>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('tempChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: [], datasets: [] },
+            options: { responsive: true, scales: { y: { beginAtZero: false } } }
+        });
+
+        async function updateData() {
+            const response = await fetch('/api/data');
+            const data = await response.json();
+            const valuesDiv = document.getElementById('values');
+            valuesDiv.innerHTML = '';
+
+            const now = new Date().toLocaleTimeString();
+            chart.data.labels.push(now);
+            if (chart.data.labels.length > 20) chart.data.labels.shift();
+
+            data.forEach((sensor, index) => {
+                // Вивід тексту
+                valuesDiv.innerHTML += `<div>${sensor.name}: <span class="sensor-val">${sensor.temp.toFixed(2)}°C</span></div>`;
+                
+                // Оновлення графіку
+                if (!chart.data.datasets[index]) {
+                    chart.data.datasets.push({
+                        label: sensor.name,
+                        data: [],
+                        borderColor: index === 0 ? 'red' : 'blue',
+                        fill: false
+                    });
+                }
+                chart.data.datasets[index].data.push(sensor.temp);
+                if (chart.data.datasets[index].data.length > 20) chart.data.datasets[index].data.shift();
+            });
+
+            chart.update();
+        }
+
+        setInterval(updateData, 5000);
+        updateData();
+    </script>
+</body>
+</html>
