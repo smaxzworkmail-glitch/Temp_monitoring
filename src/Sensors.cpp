@@ -17,6 +17,8 @@ void initSensors(uint8_t pin) {
             s.name = "Датчик " + String(i + 1);
             s.currentTemp = 0.0;
             s.color = "#ff0000"; // Колір за замовчуванням
+            for(int j=0; j<MAX_HOUR_POINTS; j++) s.history.hourData[j] = 0; // Зануляємо масиви
+            for(int j=0; j<MAX_DAY_POINTS; j++) s.history.dayData[j] = 0; // Зануляємо масиви
             sensorList.push_back(s);
         }
     }
@@ -29,6 +31,22 @@ void updateTemperatures() {
         if (t != DEVICE_DISCONNECTED_C) {
             s.currentTemp = t;
         }
+    }
+}
+
+void addHourPoint() {
+    for (auto &s : sensorList) {
+        s.history.hourData[s.history.hourIdx] = s.currentTemp;
+        s.history.hourIdx = (s.history.hourIdx + 1) % MAX_HOUR_POINTS;
+        if (s.history.hourIdx == 0) s.history.hourFull = true;
+    }
+}
+
+void addDayPoint() {
+    for (auto &s : sensorList) {
+        s.history.dayData[s.history.dayIdx] = s.currentTemp;
+        s.history.dayIdx = (s.history.dayIdx + 1) % MAX_DAY_POINTS;
+        if (s.history.dayIdx == 0) s.history.dayFull = true;
     }
 }
 
