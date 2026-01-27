@@ -23,6 +23,8 @@ struct TemperatureSensor {
     DeviceAddress address;
     String name;
     float currentTemp;
+    float lastValues[5]; // Останні 5 значень для фільтра
+    int filterIdx = 0;
     String color; // Для графіків
     SensorHistory history;
 };
