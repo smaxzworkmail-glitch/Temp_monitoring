@@ -5,6 +5,7 @@
 #include "Sensors.h"
 #include "Storage.h"
 
-void initWebInterface();
+//void initWebInterface();
+AsyncWebServer* initWebInterface();
 
 #endif

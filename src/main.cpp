@@ -4,6 +4,7 @@
 #include "WebInterface.h"
 #include "MyWiFi.h"
 #include "NTP.h"
+#include "SystemService.h"
 
 // Глобальна конфіґурація
 AppConfig appConfig;
