@@ -78,9 +78,9 @@ void updateTemperatures() {
         float avg = 0;
         int count = 0;
         
-        // 1. Розраховуємо середнє лише з валідних значень у фільтрі
+        // 1. Рахуємо середнє з фільтра
         for(int j=0; j<5; j++) {
-            if(s.lastValues[j] > -50.0) { // Ігноруємо порожні комірки
+            if(s.lastValues[j] > -50.0) {
                 avg += s.lastValues[j];
                 count++;
             }
@@ -88,36 +88,39 @@ void updateTemperatures() {
         if(count > 0) avg /= count;
 
         float newTemp = -127.0;
-        int attempts = 0;
+        bool validMeasurement = false;
 
-        // 2. Спроби верифікації
-        while (attempts < 3) {
+        // 2. Спроби вимірювання (макс 3)
+        for (int attempts = 0; attempts < 3; attempts++) {
             dallasSensors.requestTemperaturesByAddress(s.address);
             newTemp = dallasSensors.getTempC(s.address);
 
-            // ЗАХИСТ: Якщо датчик відключено - негайно припиняємо опитування цього слота
-            if (newTemp == DEVICE_DISCONNECTED_C) break;
+            // Якщо датчик фізично відпав - далі намагатися нема сенсу
+            if (newTemp == DEVICE_DISCONNECTED_C || newTemp == 85.0) {
+                break; 
+            }
 
-            // Перевірка адекватності:
-            // Якщо це старт (avg == 0) АБО значення близько до середнього (+/- 10 градусів)
-            if (avg <= 0.1 || abs(newTemp - avg) < 10.0) {
+            // Перевірка на адекватність (стрибок не більше 10 градусів)
+            // Якщо це перший замір (avg == 0), то приймаємо будь-яке значення
+            if (avg < -50.0 || count == 0 || abs(newTemp - avg) < 10.0) {
+                validMeasurement = true;
                 break; 
             }
             
-            attempts++;
-            delay(150); // Пауза для стабілізації шини
-            Serial.printf("Підозріле значення на %s: %.2f (avg: %.2f). Спроба %d\n", 
-                          s.name.c_str(), newTemp, avg, attempts);
+            // Якщо значення підозріле
+            addLog("Підозра на " + s.name + ": " + String(newTemp) + " (avg: " + String(avg) + ")");
+            delay(200); 
         }
 
-        // 3. Фінальний запис лише якщо дані валідні
-        if (newTemp != DEVICE_DISCONNECTED_C && newTemp != 85.0) {
+        // 3. Фінальне рішення за результатом спроб
+        if (validMeasurement) {
             s.currentTemp = newTemp;
-            // Оновлюємо фільтр для наступних замірів
             s.lastValues[s.filterIdx] = newTemp;
             s.filterIdx = (s.filterIdx + 1) % 5;
-        } else if (newTemp == DEVICE_DISCONNECTED_C) {
-            Serial.printf("Помилка: %s не відповідає!\n", s.name.c_str());
+        } else {
+            // Якщо за 3 спроби не отримали адекватних даних АБО датчик відпав
+            s.currentTemp = -127.0;
+            addLog("Помилка: " + s.name + " недоступний або дає збій");
         }
     }
 }

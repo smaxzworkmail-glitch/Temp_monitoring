@@ -62,18 +62,21 @@ server.on("/api/slots", HTTP_GET, [](AsyncWebServerRequest *request){
     
     for (size_t i = 0; i < sensors.size(); i++) {
         JsonObject sObj = doc.add<JsonObject>();
-        sObj["id"] = i;                         // Індекс (стабільний для Zabbix)
-        sObj["n"]  = sensors[i].name;           // Назва
-        if (sensors[i].currentTemp > -50) {
-            sObj["t"] = sensors[i].currentTemp;
+        sObj["id"] = i;
+        sObj["n"]  = sensors[i].name;
+
+        // Перевіряємо на валідність
+        if (sensors[i].currentTemp > -50.0) {
+            sObj["t"] = (float)((int)(sensors[i].currentTemp * 100)) / 100.0;
         } else {
-            sObj["t"] = JsonVariant(); // Це запише null у JSON правильно
+            sObj["t"] = nullptr; // Ось він, обіцяний null для Zabbix
         }
     }
     
     String response;
     serializeJson(doc, response);
-    request->send(200, "application/json", response);
+    // Додаємо кодування UTF-8, щоб назви "Датчик" не перетворювались на кракозябри
+    request->send(200, "application/json; charset=utf-8", response);
 });
 
     // API для отримання даних датчиків (JSON)
