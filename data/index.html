@@ -7,10 +7,7 @@
     <title id="page-title">Моніторинг</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
+        * { box-sizing: border-box; }
         body {
             font-family: -apple-system, sans-serif;
             background: #121212;
@@ -19,261 +16,42 @@
             padding: 15px;
             padding-bottom: 80px;
         }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            font-size: 1.2rem;
-            color: #00adb5;
-            margin: 0;
-            flex: 1;
-            cursor: pointer;
-            text-align: center;
-        }
-
-        h1:active {
-            opacity: 0.7;
-        }
-
-        .card {
-            background: #1e1e1e;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        .temp-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .temp-item {
-            background: #252525;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-
-        .temp-item:active {
-            transform: scale(0.95);
-        }
-
-        .temp-item .color-box {
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            border: 2px solid #333;
-        }
-
-        .temp-name {
-            display: block;
-            font-size: 0.9rem;
-            color: #00adb5;
-            font-weight: bold;
-            cursor: pointer;
-            margin-bottom: 5px;
-            word-break: break-word;
-        }
-
-        .temp-val {
-            font-size: 1.5rem;
-            font-weight: bold;
-            display: block;
-        }
-
-        .label {
-            font-size: 0.8rem;
-            color: #888;
-        }
-
-        canvas {
-            max-width: 100%;
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { font-size: 1.2rem; color: #00adb5; margin: 0; flex: 1; cursor: pointer; text-align: center; }
+        .card { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
+        .temp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .temp-item { background: #252525; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: transform 0.1s; }
+        .temp-item:active { transform: scale(0.95); }
+        .temp-item .color-box { display: inline-block; width: 24px; height: 24px; border-radius: 6px; margin-bottom: 8px; border: 2px solid #333; }
+        .temp-name { display: block; font-size: 0.9rem; color: #00adb5; font-weight: bold; margin-bottom: 5px; word-break: break-word; }
+        .temp-val { font-size: 1.5rem; font-weight: bold; display: block; }
+        .label { font-size: 0.8rem; color: #888; margin-bottom: 5px; }
+        
+        .chart-container { position: relative; height: 220px; margin-bottom: 10px; }
+        canvas { width: 100% !important; height: 100% !important; }
 
         /* Footer */
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #1e1e1e;
-            border-top: 1px solid #333;
-            padding: 15px;
-            text-align: center;
-        }
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e1e; border-top: 1px solid #333; padding: 15px; text-align: center; z-index: 10; }
+        .time-display { font-size: 1.5rem; color: #00adb5; cursor: pointer; font-weight: bold; }
+        .server-name { font-size: 0.75rem; color: #666; margin-top: 5px; }
 
-        .time-display {
-            font-size: 1.5rem;
-            color: #00adb5;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #1e1e1e; border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-close { background: none; border: none; color: #00adb5; font-size: 24px; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
+        .form-group input[type="text"] { width: 100%; padding: 8px; background: #252525; border: 1px solid #333; border-radius: 6px; color: #eee; }
+        .color-picker-group { display: flex; gap: 10px; align-items: center; }
+        .btn { background: #00adb5; color: #000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-cancel { background: #555; color: #eee; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
 
-        .time-display:active {
-            opacity: 0.7;
-        }
-
-        .server-name {
-            font-size: 0.75rem;
-            color: #666;
-            margin-top: 5px;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: #1e1e1e;
-            border-radius: 12px;
-            padding: 20px;
-            max-width: 90%;
-            width: 400px;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-        }
-
-        .modal-close {
-            background: none;
-            border: none;
-            color: #00adb5;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-        }
-
-        .form-group input[type="text"] {
-            width: 100%;
-            padding: 8px;
-            background: #252525;
-            border: 1px solid #333;
-            border-radius: 6px;
-            color: #eee;
-            font-family: inherit;
-        }
-
-        .form-group input[type="text"]:focus {
-            outline: none;
-            border-color: #00adb5;
-        }
-
-        .color-picker-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .color-picker-group input[type="color"] {
-            width: 60px;
-            height: 40px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-
-        .color-value {
-            color: #aaa;
-            font-size: 0.9rem;
-            min-width: 70px;
-        }
-
-        .btn {
-            background: #00adb5;
-            color: #000;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .btn:active {
-            transform: scale(0.95);
-        }
-
-        .btn-cancel {
-            background: #555;
-            color: #eee;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-            justify-content: flex-end;
-        }
-
-        .chart-container {
-            position: relative;
-            margin-bottom: 10px;
-        }
-
-        .crosshair-line {
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            width: 1px;
-            background: #00adb5;
-            opacity: 0.5;
-            pointer-events: none;
-            display: none;
-        }
-
-        .tooltip-hover {
-            position: absolute;
-            background: #252525;
-            border: 1px solid #00adb5;
-            padding: 8px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            pointer-events: none;
-            display: none;
-            z-index: 100;
-        }
+        /* Chart Overlays */
+        .crosshair-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #00adb5; opacity: 0.5; pointer-events: none; display: none; }
+        .tooltip-hover { position: absolute; background: #252525; border: 1px solid #00adb5; padding: 8px; border-radius: 6px; font-size: 0.85rem; pointer-events: none; display: none; z-index: 100; }
     </style>
 </head>
 
@@ -285,7 +63,7 @@
     <div id="live-temps" class="temp-grid"></div>
 
     <div class="card">
-        <div class="label">Година</div>
+        <div class="label">Остання година (оновлення 1 хв)</div>
         <div class="chart-container">
             <div class="crosshair-line" id="hourCrosshair"></div>
             <div class="tooltip-hover" id="hourTooltip"></div>
@@ -294,7 +72,7 @@
     </div>
 
     <div class="card">
-        <div class="label">Доба</div>
+        <div class="label">Добовий графік (оновлення 15 хв)</div>
         <div class="chart-container">
             <div class="crosshair-line" id="dayCrosshair"></div>
             <div class="tooltip-hover" id="dayTooltip"></div>
@@ -302,351 +80,254 @@
         </div>
     </div>
 
-    <!-- Footer з часом -->
     <div class="footer">
         <div class="time-display" id="timeDisplay" onclick="openNTPModal()">--:-- --</div>
-        <div class="server-name" id="serverName">system</div>
+        <div class="server-name" id="serverName">...</div>
     </div>
 
-    <!-- Modal для редагування датчика -->
     <div id="sensorModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Редагування датчика</h2>
-                <button class="modal-close" onclick="closeSensorModal()">✕</button>
+                <h2>Датчик</h2>
+                <button class="modal-close" onclick="closeModal('sensorModal')">✕</button>
             </div>
             <div class="form-group">
-                <label>Назва датчика</label>
-                <input type="text" id="sensorName" placeholder="Назва">
+                <label>Назва</label>
+                <input type="text" id="sensorName">
             </div>
             <div class="form-group">
                 <label>Колір</label>
                 <div class="color-picker-group">
                     <input type="color" id="sensorColor">
-                    <span class="color-value" id="colorValue"></span>
                 </div>
             </div>
             <div class="btn-group">
                 <button class="btn" onclick="saveSensorConfig()">Зберегти</button>
-                <button class="btn btn-cancel" onclick="closeSensorModal()">Скасувати</button>
+                <button class="btn btn-cancel" onclick="closeModal('sensorModal')">Скасувати</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal для NTP -->
     <div id="ntpModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Налаштування часу</h2>
-                <button class="modal-close" onclick="closeNTPModal()">✕</button>
+                <h2>Час</h2>
+                <button class="modal-close" onclick="closeModal('ntpModal')">✕</button>
             </div>
             <div class="form-group">
                 <label>NTP сервер</label>
-                <input type="text" id="ntpServer" placeholder="pool.ntp.org">
+                <input type="text" id="ntpServer">
             </div>
             <div class="btn-group">
                 <button class="btn" onclick="saveNTPConfig()">Зберегти</button>
-                <button class="btn btn-cancel" onclick="closeNTPModal()">Скасувати</button>
+                <button class="btn btn-cancel" onclick="closeModal('ntpModal')">Скасувати</button>
             </div>
         </div>
     </div>
 
     <script>
-        const defaultColors = ['#ff5722', '#00adb5', '#8bc34a', '#ffeb3b', '#e91e63'];
-
+        const COLORS = ['#ff5722', '#00adb5', '#8bc34a', '#ffeb3b', '#e91e63'];
         let hourChart, dayChart;
         let config = {};
         let editingSensorId = null;
 
+        // --- Ініціалізація ---
+        async function init() {
+            initCharts();
+            await loadConfig();
+            
+            // Перший запуск даних
+            updateLive(); 
+            updateHourChart();
+            updateDayChart();
+            
+            // Налаштування інтервалів оновлення (AJAX опитування)
+            setInterval(updateLive, 10000);       // Цифри: кожні 10 сек
+            setInterval(updateHourChart, 60000);   // Година: кожну 1 хв
+            setInterval(updateDayChart, 900000);   // Доба: кожні 15 хв
+            setInterval(updateTime, 1000);         // Годинник у футері
+        }
+
         function initCharts() {
-            const commonOptions = {
+            const options = {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 scales: {
-                    x: {
-                        display: true,
-                        ticks: { color: '#888', maxTicksLimit: 6 }
-                    },
-                    y: {
-                        grid: { color: '#333' },
-                        ticks: { color: '#888' }
-                    }
+                    x: { ticks: { color: '#888', maxTicksLimit: 8 } },
+                    y: { grid: { color: '#333' }, ticks: { color: '#888' } }
                 },
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#ccc' } },
-                    tooltip: { enabled: true, mode: 'index', intersect: false }
+                    legend: { position: 'bottom', labels: { color: '#ccc', boxWidth: 12 } },
+                    tooltip: { enabled: false }
                 },
-                animation: false,
+                animation: { duration: 400 },
                 interaction: { intersect: false, mode: 'index' }
             };
 
-            hourChart = new Chart(document.getElementById('hourChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [] },
-                options: commonOptions
+            hourChart = new Chart(document.getElementById('hourChart'), { type: 'line', data: { labels: [], datasets: [] }, options });
+            dayChart = new Chart(document.getElementById('dayChart'), { type: 'line', data: { labels: [], datasets: [] }, options });
+
+            setupChartInteraction('hourChart', 'hourCrosshair', 'hourTooltip', hourChart);
+            setupChartInteraction('dayChart', 'dayCrosshair', 'dayTooltip', dayChart);
+        }
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                config = await res.json();
+                document.getElementById('app-title').textContent = '🌡️ ' + (config.title || 'Моніторинг');
+                document.getElementById('serverName').textContent = config.ntpServer || 'pool.ntp.org';
+            } catch (e) { console.error("Config fail", e); }
+        }
+
+        async function updateLive() {
+            try {
+                const res = await fetch('/api/data');
+                const sensors = await res.json();
+                window.allSensors = sensors;
+
+                const liveDiv = document.getElementById('live-temps');
+                liveDiv.innerHTML = sensors.map((s, i) => {
+                    const col = s.color || COLORS[i % COLORS.length];
+                    return `
+                    <div class="temp-item" onclick="openSensorModal(${i})">
+                        <div class="color-box" style="background-color: ${col};"></div>
+                        <span class="temp-name">${s.name}</span>
+                        <span class="temp-val">${s.current > -50 ? s.current.toFixed(1) : '--'}°C</span>
+                    </div>`;
+                }).join('');
+            } catch (e) { console.error("Live update fail", e); }
+        }
+
+        async function updateHourChart() {
+            try {
+                const res = await fetch('/logs');
+                if (res.ok) {
+                    const logs = await res.json();
+                    renderChart(hourChart, logs, window.allSensors || [], 5);
+                }
+            } catch (e) { console.error("Hour chart fail", e); }
+        }
+
+        async function updateDayChart() {
+            try {
+                const res = await fetch('/api/data_day');
+                if (res.ok) {
+                    const logs = await res.json();
+                    renderChart(dayChart, logs, window.allSensors || [], 12);
+                }
+            } catch (e) { console.error("Day chart fail", e); }
+        }
+
+        function renderChart(chart, logs, sensors, labelStep) {
+            if (!logs || logs.length === 0 || !sensors || sensors.length === 0) return;
+            
+            chart.data.labels = logs.map((line, idx) => {
+                const p = line.split(',');
+                return idx % labelStep === 0 ? p[0].trim() : '';
             });
 
-            dayChart = new Chart(document.getElementById('dayChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [] },
-                options: commonOptions
-            });
-        }
-
-        function updateTime() {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const mins = String(now.getMinutes()).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const year = now.getFullYear();
-
-            document.getElementById('timeDisplay').textContent = `${day}.${month}.${year} ${hours}:${mins}`;
-        }
-
-        function formatTimeLabel(minutes) {
-            const hour = Math.floor(minutes / 60);
-            const min = minutes % 60;
-            return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
-        }
-
-async function updateData() {
-    try {
-        // КРОК 1: Живі датчики
-        const res = await fetch('/api/data');
-        if (!res.ok) throw new Error("API error");
-        const sensors = await res.json();
-        
-        window.allSensors = sensors; // Важливо для модалок!
-
-        const liveDiv = document.getElementById('live-temps');
-        liveDiv.innerHTML = '';
-        
-        sensors.forEach((s, i) => {
-            const color = s.color || defaultColors[i % defaultColors.length];
-            const val = (s.current !== undefined && s.current > -50) ? s.current.toFixed(1) : '--';
-            liveDiv.innerHTML += `
-                <div class="temp-item" onclick="openSensorModal(${i})">
-                    <div class="color-box" style="background-color: ${color};"></div>
-                    <span class="temp-name">${s.name || 'Датчик ' + (i + 1)}</span>
-                    <span class="temp-val">${val}°C</span>
-                </div>`;
-        });
-
-        // КРОК 2: Графік (Logs)
-        try {
-            const logsRes = await fetch('/logs');
-            if (logsRes.ok) {
-                const logsData = await logsRes.json();
-                
-                hourChart.data.labels = [];
-                hourChart.data.datasets[0].data = [];
-                hourChart.data.datasets[1].data = [];
-
-                logsData.forEach(line => {
-                    const parts = line.split(','); // Твій новий формат з С++
-                    if (parts.length >= 3) {
-                        hourChart.data.labels.push(parts[0].trim());
-                        hourChart.data.datasets[0].data.push(parseFloat(parts[1]));
-                        hourChart.data.datasets[1].data.push(parseFloat(parts[2]));
-                    }
-                });
-                hourChart.update('none');
-            }
-        } catch (logErr) {
-            console.warn("Графік поки недоступний");
-        }
-
-    } catch (e) {
-        console.error("Помилка оновлення:", e);
-    }
-}
-
-        function updateDataset(chart, index, name, points, times, color, isDayChart) {
-            if (!chart.data.datasets[index]) {
-                chart.data.datasets[index] = {
-                    label: name,
-                    data: [],
+            chart.data.datasets = sensors.map((s, i) => {
+                const color = s.color || COLORS[i % COLORS.length];
+                return {
+                    label: s.name,
+                    data: logs.map(line => {
+                        const p = line.split(',');
+                        const val = parseFloat(p[i + 1]);
+                        return (val > -50) ? val : null;
+                    }),
                     borderColor: color,
-                    backgroundColor: color + '20',
+                    backgroundColor: color,
                     tension: 0.3,
                     pointRadius: 0,
                     borderWidth: 2
                 };
-            } else {
-                chart.data.datasets[index].label = name;
-                chart.data.datasets[index].borderColor = color;
-                chart.data.datasets[index].backgroundColor = color + '20';
-            }
-            chart.data.datasets[index].data = points;
+            });
 
-            // Генеруємо часові мітки
-            if (times && times.length > 0) {
-                chart.data.labels = times.map((t, i) => {
-                    if (isDayChart) {
-                        // Для добового графіка показуємо час кожні 12 точок (3 години)
-                        return i % 12 === 0 ? formatTimeLabel(t) : '';
-                    } else {
-                        // Для годинного графіка показуємо час кожні 10 точок
-                        return i % 10 === 0 ? formatTimeLabel(t) : '';
-                    }
-                });
-            }
+            chart.update('none'); 
         }
 
-        function setupChartInteraction() {
-            setupChartCrosshair('hourChart', 'hourCrosshair', 'hourTooltip', hourChart);
-            setupChartCrosshair('dayChart', 'dayCrosshair', 'dayTooltip', dayChart);
+        function updateTime() {
+            const now = new Date();
+            const fmt = (n) => String(n).padStart(2, '0');
+            document.getElementById('timeDisplay').textContent = 
+                `${fmt(now.getDate())}.${fmt(now.getMonth()+1)} ${fmt(now.getHours())}:${fmt(now.getMinutes())}`;
         }
 
-        function setupChartCrosshair(canvasId, crosshairId, tooltipId, chart) {
+        function setupChartInteraction(canvasId, crossId, toolId, chart) {
             const canvas = document.getElementById(canvasId);
-            const crosshair = document.getElementById(crosshairId);
-            const tooltip = document.getElementById(tooltipId);
+            const cross = document.getElementById(crossId);
+            const tool = document.getElementById(toolId);
 
-            canvas.addEventListener('mousemove', (e) => showChartCrosshair(e, canvas, crosshair, tooltip, chart));
-            canvas.addEventListener('mouseleave', () => {
-                crosshair.style.display = 'none';
-                tooltip.style.display = 'none';
-            });
+            const handleMove = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+                const points = chart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
 
-            canvas.addEventListener('touchmove', (e) => showChartCrosshair(e, canvas, crosshair, tooltip, chart));
-            canvas.addEventListener('touchend', () => {
-                crosshair.style.display = 'none';
-                tooltip.style.display = 'none';
-            });
-        }
+                if (points.length > 0) {
+                    const idx = points[0].index;
+                    cross.style.display = 'block';
+                    cross.style.left = chart.scales.x.getPixelForValue(idx) + 'px';
 
-        function showChartCrosshair(e, canvas, crosshair, tooltip, chart) {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.touches ? e.touches[0].clientX - rect.left : e.offsetX;
-
-            const canvasWidth = canvas.width;
-            const dataLength = chart.data.datasets[0]?.data.length || 1;
-            const dataIndex = Math.round((x / canvasWidth) * dataLength);
-
-            // Показуємо лінію
-            crosshair.style.display = 'block';
-            crosshair.style.left = x + 'px';
-
-            // Показуємо дані
-            if (dataIndex >= 0 && dataIndex < dataLength) {
-                const now = new Date();
-                const currentDate = new Date(now.getTime() - (dataLength - dataIndex) * 60000); // Прибліжна дата
-                const day = String(currentDate.getDate()).padStart(2, '0');
-                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-                const hours = String(currentDate.getHours()).padStart(2, '0');
-                const mins = String(currentDate.getMinutes()).padStart(2, '0');
-
-                let tooltipText = `<strong>${day}.${month} ${hours}:${mins}</strong><br>`;
-                let hasData = false;
-
-                chart.data.datasets.forEach(dataset => {
-                    const val = dataset.data[dataIndex];
-                    if (val !== undefined && val > -50) {
-                        tooltipText += `${dataset.label}: ${val.toFixed(1)}°C<br>`;
-                        hasData = true;
-                    }
-                });
-
-                if (hasData) {
-                    tooltip.innerHTML = tooltipText;
-                    tooltip.style.display = 'block';
-                    tooltip.style.left = Math.min(x + 10, canvasWidth - 150) + 'px';
-                    tooltip.style.top = '10px';
+                    let html = `<strong>${chart.data.labels[idx] || 'Запис'}</strong><br>`;
+                    chart.data.datasets.forEach(ds => {
+                        const v = ds.data[idx];
+                        if (v !== null) html += `<span style="color:${ds.borderColor}">●</span> ${ds.label}: ${v.toFixed(1)}°C<br>`;
+                    });
+                    tool.innerHTML = html;
+                    tool.style.display = 'block';
+                    tool.style.left = Math.min(x + 15, rect.width - 120) + 'px';
                 }
-            }
+            };
+
+            canvas.addEventListener('mousemove', handleMove);
+            canvas.addEventListener('touchstart', handleMove);
+            canvas.addEventListener('mouseleave', () => { cross.style.display = 'none'; tool.style.display = 'none'; });
         }
 
-        // Редагування датчика
-        function openSensorModal(sensorId) {
-            editingSensorId = sensorId;
-            const sensor = config.sensors[sensorId];
-            const colorInput = document.getElementById('sensorColor');
-            const colorValue = document.getElementById('colorValue');
-
-            document.getElementById('sensorName').value = sensor.name;
-            const sensorColor = sensor.color || defaultColors[sensorId % defaultColors.length];
-            colorInput.value = sensorColor;
-            colorValue.textContent = sensorColor;
-
-            colorInput.addEventListener('change', () => {
-                colorValue.textContent = colorInput.value;
-            });
-
+        function openSensorModal(id) {
+            editingSensorId = id;
+            const s = window.allSensors[id];
+            document.getElementById('sensorName').value = s.name;
+            document.getElementById('sensorColor').value = s.color || COLORS[id % COLORS.length];
             document.getElementById('sensorModal').classList.add('active');
         }
 
-        function closeSensorModal() {
-            document.getElementById('sensorModal').classList.remove('active');
-            editingSensorId = null;
-        }
-
-        function saveSensorConfig() {
-            if (editingSensorId === null) return;
-
-            const updatedConfig = {
-                title: config.title,
-                ntpServer: config.ntpServer,
-                updateInterval: config.updateInterval,
-                sensors: config.sensors.map((s, i) => ({
-                    id: i,
-                    name: i === editingSensorId ? document.getElementById('sensorName').value : s.name,
-                    color: i === editingSensorId ? document.getElementById('sensorColor').value : (s.color || defaultColors[i % defaultColors.length])
-                }))
-            };
-
-            fetch('/api/config', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedConfig)
-            })
-                .then(() => {
-                    config = updatedConfig;
-                    closeSensorModal();
-                    updateData();
-                })
-                .catch(e => alert('Помилка: ' + e));
-        }
-
-        // NTP модал
         function openNTPModal() {
             document.getElementById('ntpServer').value = config.ntpServer || 'pool.ntp.org';
             document.getElementById('ntpModal').classList.add('active');
         }
 
-        function closeNTPModal() {
-            document.getElementById('ntpModal').classList.remove('active');
+        function closeModal(mId) { document.getElementById(mId).classList.remove('active'); }
+
+        async function saveSensorConfig() {
+            if (!config.sensors) config.sensors = [];
+            config.sensors[editingSensorId] = {
+                id: editingSensorId,
+                name: document.getElementById('sensorName').value,
+                color: document.getElementById('sensorColor').value
+            };
+            await sendConfig();
+            closeModal('sensorModal');
+            updateLive();
         }
 
-        function saveNTPConfig() {
-            const updatedConfig = {
-                title: config.title,
-                ntpServer: document.getElementById('ntpServer').value,
-                updateInterval: config.updateInterval,
-                sensors: config.sensors
-            };
+        async function saveNTPConfig() {
+            config.ntpServer = document.getElementById('ntpServer').value;
+            await sendConfig();
+            document.getElementById('serverName').textContent = config.ntpServer;
+            closeModal('ntpModal');
+        }
 
-            fetch('/api/config', {
+        async function sendConfig() {
+            await fetch('/api/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updatedConfig)
-            })
-                .then(() => {
-                    config = updatedConfig;
-                    closeNTPModal();
-                    document.getElementById('serverName').textContent = config.ntpServer;
-                    alert('NTP налаштування оновлено');
-                })
-                .catch(e => alert('Помилка: ' + e));
+                body: JSON.stringify(config)
+            });
         }
 
-        initCharts();
-        updateData();
-        updateTime();
-        setInterval(updateData, 10000);
-        setInterval(updateTime, 1000);
+        init();
     </script>
 </body>
-
 </html>

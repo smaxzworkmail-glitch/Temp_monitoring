@@ -31,7 +31,7 @@ void generateFakeData()
 
     systemLogs.clear(); // Очищуємо старе перед генерацією
 
-    for (int i = 60; i > 0; i--)
+    for (int i = 30; i > 0; i--)
     {
         time_t fakeTime = now - (i * 60);
         struct tm *tm_info = localtime(&fakeTime);
