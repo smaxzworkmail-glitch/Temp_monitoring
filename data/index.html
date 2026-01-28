@@ -417,10 +417,12 @@
                 if (!res.ok) throw new Error("API error");
                 const sensors = await res.json();
 
+                // Зберігаємо для модалок
+                window.allSensors = sensors;
+
                 const liveDiv = document.getElementById('live-temps');
                 liveDiv.innerHTML = '';
 
-                // 2. Оновлюємо плашки датчиків зверху
                 sensors.forEach((s, i) => {
                     const color = s.color || defaultColors[i % defaultColors.length];
                     const val = (s.current !== undefined && s.current > -50) ? s.current.toFixed(1) : '--';
@@ -432,31 +434,30 @@
                 </div>`;
                 });
 
-                // 3. Отримуємо логи (фейки + реальні)
+                // 2. Отримуємо лог (30 точок, які ми налаштували в C++)
                 try {
                     const logsRes = await fetch('/logs');
-                    if (!logsRes.ok) throw new Error("Logs server error 500");
+                    if (logsRes.ok) {
+                        const logsData = await logsRes.json();
 
-                    const logsData = await logsRes.json();
+                        // Очищаємо графік перед заповненням
+                        hourChart.data.labels = [];
+                        hourChart.data.datasets[0].data = [];
+                        hourChart.data.datasets[1].data = [];
 
-                    // Очищаємо графік перед заповненням
-                    hourChart.data.labels = [];
-                    hourChart.data.datasets[0].data = [];
-                    hourChart.data.datasets[1].data = [];
-
-                    logsData.forEach(line => {
-                        // Парсимо новий компактний формат: "HH:MM,T1,T2"
-                        const parts = line.split(',');
-                        if (parts.length >= 3) {
-                            hourChart.data.labels.push(parts[0].trim());
-                            hourChart.data.datasets[0].data.push(parseFloat(parts[1]));
-                            hourChart.data.datasets[1].data.push(parseFloat(parts[2]));
-                        }
-                    });
-
-                    hourChart.update('none');
+                        logsData.forEach(line => {
+                            // Парсимо формат "HH:MM,T1,T2"
+                            const parts = line.split(',');
+                            if (parts.length >= 3) {
+                                hourChart.data.labels.push(parts[0].trim());
+                                hourChart.data.datasets[0].data.push(parseFloat(parts[1]));
+                                hourChart.data.datasets[1].data.push(parseFloat(parts[2]));
+                            }
+                        });
+                        hourChart.update('none');
+                    }
                 } catch (logErr) {
-                    console.warn("Графік не оновлено:", logErr.message);
+                    console.warn("Логи ще не готові");
                 }
 
             } catch (e) {
