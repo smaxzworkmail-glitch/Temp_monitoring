@@ -36,6 +36,14 @@
             text-align: center;
         }
 
+        .chart-container {
+            position: relative;
+            height: 220px;
+            margin-bottom: 10px;
+            touch-action: pan-y;
+            /* Дозволяє скрол вгору-вниз, але перехоплює горизонтальні рухи */
+        }
+
         .card {
             background: #1e1e1e;
             border-radius: 12px;
@@ -489,18 +497,46 @@
             const cross = document.getElementById(crossId);
             const tool = document.getElementById(toolId);
 
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isHorizontalMove = false;
+
             const handleMove = (e) => {
-                // Якщо це дотик, відміняємо стандартну прокрутку сторінки
-                if (e.type === 'touchmove' || e.type === 'touchstart') {
-                    if (e.cancelable) e.preventDefault();
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+                if (e.type === 'touchstart') {
+                    touchStartX = clientX;
+                    touchStartY = clientY;
+                    isHorizontalMove = false;
+                    return;
                 }
 
-                const rect = canvas.getBoundingClientRect();
-                // Отримуємо координату X (або від мишки, або від першого пальця)
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const x = clientX - rect.left;
+                if (e.type === 'touchmove') {
+                    const dx = Math.abs(clientX - touchStartX);
+                    const dy = Math.abs(clientY - touchStartY);
 
-                // Знаходимо найближчу точку на графіку
+                    // Якщо ми вже визначили рух як горизонтальний, блокуємо скрол
+                    if (isHorizontalMove) {
+                        if (e.cancelable) e.preventDefault();
+                    } else {
+                        // Якщо пальцем повели вбік більше, ніж вгору — вмикаємо режим графіка
+                        if (dx > 10 && dx > dy) {
+                            isHorizontalMove = true;
+                            if (e.cancelable) e.preventDefault();
+                        } else if (dy > 10) {
+                            // Якщо вгору/вниз — вимикаємо лінію і даємо скролити
+                            cross.style.display = 'none';
+                            tool.style.display = 'none';
+                            return;
+                        } else {
+                            return; // Ще не визначились
+                        }
+                    }
+                }
+
+                const x = clientX - rect.left;
                 const points = chart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
 
                 if (points.length > 0) {
@@ -519,29 +555,25 @@
                     tool.innerHTML = html;
                     tool.style.display = 'block';
 
-                    // Розумне позиціонування тултіпа, щоб він не вилазив за край екрана
-                    const toolWidth = 120;
                     let posX = x + 15;
-                    if (posX + toolWidth > rect.width) {
-                        posX = x - toolWidth - 15;
-                    }
+                    if (posX + 120 > rect.width) posX = x - 135;
                     tool.style.left = posX + 'px';
                 }
             };
 
-            // Слухачі для мишки
             canvas.addEventListener('mousemove', handleMove);
             canvas.addEventListener('mouseleave', () => {
                 cross.style.display = 'none';
                 tool.style.display = 'none';
             });
 
-            // Слухачі для сенсорного екрана (пасивний режим false дозволяє preventDefault)
-            canvas.addEventListener('touchstart', handleMove, { passive: false });
+            // Нові слухачі для тача
+            canvas.addEventListener('touchstart', handleMove, { passive: true });
             canvas.addEventListener('touchmove', handleMove, { passive: false });
             canvas.addEventListener('touchend', () => {
                 cross.style.display = 'none';
                 tool.style.display = 'none';
+                isHorizontalMove = false;
             });
         }
 
