@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "title": "Система Моніторингу",
+  "ntpServer": "pool.ntp.org",
+  "tzOffset": 7200,
+  "wifi": {
+    "ssid": "TempMon",
+    "password": "TempMon1pass"
+  },
+  "sensors": [
+    {
+      "id": 0,
+      "name": "Датчик 1",
+      "color": "#ff5722"
+    }
+  ],
+  "updateInterval": 30000
+}

@@ -3,21 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Моніторинг</title>
+    <title id="page-title">Моніторинг</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: -apple-system, sans-serif; background: #121212; color: #eee; margin: 0; padding: 15px; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: #121212; color: #eee; margin: 0; padding: 15px; padding-bottom: 80px; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        h1 { font-size: 1.2rem; color: #00adb5; margin: 0; flex: 1; cursor: pointer; }
+        h1:active { opacity: 0.7; }
+        
         .card { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        h1 { font-size: 1.2rem; color: #00adb5; text-align: center; }
         .temp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .temp-item { background: #252525; padding: 10px; border-radius: 8px; text-align: center; border-left: 4px solid #00adb5; }
+        .temp-item { background: #252525; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: transform 0.1s; }
+        .temp-item:active { transform: scale(0.95); }
+        .temp-item .color-box { display: inline-block; width: 24px; height: 24px; border-radius: 6px; margin-bottom: 8px; border: 2px solid #333; }
+        .temp-name { display: block; font-size: 0.9rem; color: #00adb5; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
         .temp-val { font-size: 1.5rem; font-weight: bold; display: block; }
         .label { font-size: 0.8rem; color: #888; }
         canvas { max-width: 100%; }
+        
+        /* Footer */
+        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e1e; border-top: 1px solid #333; padding: 15px; text-align: center; }
+        .time-display { font-size: 1.5rem; color: #00adb5; cursor: pointer; font-weight: bold; }
+        .time-display:active { opacity: 0.7; }
+        .server-name { font-size: 0.75rem; color: #666; margin-top: 5px; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #1e1e1e; border-radius: 12px; padding: 20px; max-width: 90%; width: 400px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { margin: 0; }
+        .modal-close { background: none; border: none; color: #00adb5; font-size: 24px; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 8px; background: #252525; border: 1px solid #333; border-radius: 6px; color: #eee; font-family: inherit; }
+        .form-group input:focus { outline: none; border-color: #00adb5; }
+        .btn { background: #00adb5; color: #000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn:active { transform: scale(0.95); }
+        .btn-cancel { background: #555; color: #eee; margin-left: 10px; }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
     </style>
 </head>
 <body>
-    <h1>🌡️ Система Моніторингу</h1>
+    <div class="header">
+        <h1 id="app-title">🌡️ Система Моніторингу</h1>
+    </div>
     
     <div id="live-temps" class="temp-grid"></div>
 
@@ -31,9 +63,56 @@
         <canvas id="dayChart"></canvas>
     </div>
 
+    <!-- Footer з часом -->
+    <div class="footer">
+        <div class="time-display" id="timeDisplay" onclick="openNTPModal()">--:-- --</div>
+        <div class="server-name" id="serverName">system</div>
+    </div>
+
+    <!-- Modal для редагування датчика -->
+    <div id="sensorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Редагування датчика</h2>
+                <button class="modal-close" onclick="closeSensorModal()">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Назва датчика</label>
+                <input type="text" id="sensorName" placeholder="Назва">
+            </div>
+            <div class="form-group">
+                <label>Колір</label>
+                <input type="color" id="sensorColor">
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="saveSensorConfig()">Зберегти</button>
+                <button class="btn btn-cancel" onclick="closeSensorModal()">Скасувати</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal для NTP -->
+    <div id="ntpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Налаштування часу</h2>
+                <button class="modal-close" onclick="closeNTPModal()">✕</button>
+            </div>
+            <div class="form-group">
+                <label>NTP сервер</label>
+                <input type="text" id="ntpServer" placeholder="pool.ntp.org">
+            </div>
+            <div class="btn-group">
+                <button class="btn" onclick="saveNTPConfig()">Зберегти</button>
+                <button class="btn btn-cancel" onclick="closeNTPModal()">Скасувати</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let hourChart, dayChart;
-        const colors = ['#ff5722', '#00adb5', '#8bc34a', '#ffeb3b', '#e91e63'];
+        let config = {};
+        let editingSensorId = null;
 
         function initCharts() {
             const commonOptions = {
@@ -47,6 +126,17 @@
             dayChart = new Chart(document.getElementById('dayChart'), { type: 'line', data: { labels: [], datasets: [] }, options: commonOptions });
         }
 
+        function updateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            
+            document.getElementById('timeDisplay').textContent = `${hours}:${mins} ${day}.${month}.${year}`;
+        }
+
         async function updateData() {
             try {
                 const res = await fetch('/api/data');
@@ -55,13 +145,29 @@
                 const liveDiv = document.getElementById('live-temps');
                 liveDiv.innerHTML = '';
                 
+                // Завантажуємо конфіґурацію для назви та серверу
+                if (!config.title) {
+                    const cfgRes = await fetch('/api/config');
+                    config = await cfgRes.json();
+                    document.getElementById('app-title').textContent = '🌡️ ' + config.title;
+                    document.getElementById('serverName').textContent = config.ntpServer;
+                    document.title = config.title;
+                }
+                
                 data.forEach((sensor, i) => {
-                    // Оновлення карток
-                    liveDiv.innerHTML += `<div class="temp-item"><span class="label">${sensor.name}</span><span class="temp-val">${sensor.current.toFixed(1)}°C</span></div>`;
+                    const color = sensor.color || '#00adb5';
+                    const tempHtml = `
+                        <div class="temp-item" onclick="openSensorModal(${i})">
+                            <div class="color-box" style="background-color: ${color}; margin-left: -4px; margin-right: -4px;"></div>
+                            <span class="temp-name" onclick="event.stopPropagation(); editSensorName(${i})">${sensor.name}</span>
+                            <span class="temp-val">${sensor.current > -50 ? sensor.current.toFixed(1) : '--'}°C</span>
+                        </div>
+                    `;
+                    liveDiv.innerHTML += tempHtml;
                     
                     // Дані для графіків
-                    updateDataset(hourChart, i, sensor.name, sensor.hour);
-                    updateDataset(dayChart, i, sensor.name, sensor.day);
+                    updateDataset(hourChart, i, sensor.name, sensor.hour, color);
+                    updateDataset(dayChart, i, sensor.name, sensor.day, color);
                 });
 
                 hourChart.update();
@@ -69,9 +175,21 @@
             } catch (e) { console.error("Data error", e); }
         }
 
-        function updateDataset(chart, index, name, points) {
+        function updateDataset(chart, index, name, points, color) {
             if (!chart.data.datasets[index]) {
-                chart.data.datasets[index] = { label: name, data: [], borderColor: colors[index % colors.length], tension: 0.3, pointRadius: 0 };
+                chart.data.datasets[index] = { 
+                    label: name, 
+                    data: [], 
+                    borderColor: color, 
+                    backgroundColor: color + '20',
+                    tension: 0.3, 
+                    pointRadius: 0,
+                    borderWidth: 2
+                };
+            } else {
+                chart.data.datasets[index].label = name;
+                chart.data.datasets[index].borderColor = color;
+                chart.data.datasets[index].backgroundColor = color + '20';
             }
             chart.data.datasets[index].data = points;
             if (chart.data.labels.length < points.length) {
@@ -79,9 +197,89 @@
             }
         }
 
+        // Редагування датчика (коліс + назва)
+        function openSensorModal(sensorId) {
+            editingSensorId = sensorId;
+            const sensor = config.sensors[sensorId];
+            document.getElementById('sensorName').value = sensor.name;
+            document.getElementById('sensorColor').value = sensor.color || '#ff5722';
+            document.getElementById('sensorModal').classList.add('active');
+        }
+
+        function closeSensorModal() {
+            document.getElementById('sensorModal').classList.remove('active');
+            editingSensorId = null;
+        }
+
+        function saveSensorConfig() {
+            if (editingSensorId === null) return;
+            
+            const updatedConfig = {
+                title: config.title,
+                ntpServer: config.ntpServer,
+                updateInterval: config.updateInterval,
+                sensors: config.sensors.map((s, i) => ({
+                    id: i,
+                    name: i === editingSensorId ? document.getElementById('sensorName').value : s.name,
+                    color: i === editingSensorId ? document.getElementById('sensorColor').value : s.color
+                }))
+            };
+            
+            fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedConfig)
+            })
+            .then(() => {
+                config = updatedConfig;
+                closeSensorModal();
+                updateData();
+            })
+            .catch(e => alert('Помилка: ' + e));
+        }
+
+        // Редагування тільки назви (клік на текст)
+        function editSensorName(sensorId) {
+            openSensorModal(sensorId);
+        }
+
+        // NTP модал
+        function openNTPModal() {
+            document.getElementById('ntpServer').value = config.ntpServer || 'pool.ntp.org';
+            document.getElementById('ntpModal').classList.add('active');
+        }
+
+        function closeNTPModal() {
+            document.getElementById('ntpModal').classList.remove('active');
+        }
+
+        function saveNTPConfig() {
+            const updatedConfig = {
+                title: config.title,
+                ntpServer: document.getElementById('ntpServer').value,
+                updateInterval: config.updateInterval,
+                sensors: config.sensors
+            };
+            
+            fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedConfig)
+            })
+            .then(() => {
+                config = updatedConfig;
+                closeNTPModal();
+                document.getElementById('serverName').textContent = config.ntpServer;
+                alert('NTP налаштування оновлено');
+            })
+            .catch(e => alert('Помилка: ' + e));
+        }
+
         initCharts();
         updateData();
-        setInterval(updateData, 10000); // Оновлення раз на 10 сек
+        updateTime();
+        setInterval(updateData, 10000);
+        setInterval(updateTime, 1000); // Оновлення часу кожну секунду
     </script>
 </body>
 </html>
