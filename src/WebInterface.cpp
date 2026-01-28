@@ -13,7 +13,8 @@ std::deque<String> systemLogs;
 void addLog(String msg) {
     String timestampedMsg = "[" + getTimeStr() + "] " + msg;
     systemLogs.push_back(timestampedMsg);
-    if (systemLogs.size() > 20) systemLogs.pop_front(); // Тримаємо останні 20 записів
+    if (systemLogs.size() > 100) systemLogs.pop_front(); // Тримаємо останні n записів
+    Serial.println(timestampedMsg);
 }
 
 void initWebInterface() {
@@ -39,12 +40,37 @@ server.on("/api/terminal", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "application/json", response);
 });
 
+server.on("/api/terminal/raw", HTTP_GET, [](AsyncWebServerRequest *request){
+    String raw = "";
+    for (auto const& log : systemLogs) {
+        raw += log + "\n"; // Додаємо символ переносу рядка
+    }
+    request->send(200, "text/plain", raw); // Відправляємо як чистий текст
+});
+
+server.on("/log", HTTP_GET, [](AsyncWebServerRequest *request){
+    String out = "";
+    for (auto const& msg : systemLogs) {
+        out += msg + "\r\n"; // Додаємо перенос рядка
+    }
+    request->send(200, "text/plain; charset=utf-8", out);
+});
 
 server.on("/api/slots", HTTP_GET, [](AsyncWebServerRequest *request){
     JsonDocument doc;
-    for (auto &s : getSensors()) {
-        doc[s.name] = (s.currentTemp < -50) ? "error" : String(s.currentTemp, 2);
+    auto& sensors = getSensors();
+    
+    for (size_t i = 0; i < sensors.size(); i++) {
+        JsonObject sObj = doc.add<JsonObject>();
+        sObj["id"] = i;                         // Індекс (стабільний для Zabbix)
+        sObj["n"]  = sensors[i].name;           // Назва
+        if (sensors[i].currentTemp > -50) {
+            sObj["t"] = sensors[i].currentTemp;
+        } else {
+            sObj["t"] = JsonVariant(); // Це запише null у JSON правильно
+        }
     }
+    
     String response;
     serializeJson(doc, response);
     request->send(200, "application/json", response);
