@@ -184,44 +184,52 @@ AsyncWebServer *initWebInterface()
     // API для отримання даних датчиків з часовими мітками
     server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest *request)
               {
-        JsonDocument doc;
-        auto& sensors = getSensors();
-        time_t now = time(nullptr);
+    JsonDocument doc;
+    auto& sensors = getSensors();
+    time_t now = time(nullptr); // Поточний час у секундах (NTP)
+    
+    for (auto &s : sensors) {
+        JsonObject sObj = doc.add<JsonObject>();
+        sObj["name"] = s.name;
+        sObj["color"] = s.color;
+        sObj["current"] = s.currentTemp;
         
-        for (auto &s : sensors) {
-            JsonObject sObj = doc.add<JsonObject>();
-            sObj["name"] = s.name;
-            sObj["color"] = s.color;
-            sObj["current"] = s.currentTemp;
-            
-            // Збираємо годинні дані (60 точок за останню годину)
-            JsonArray hArr = sObj["hour"].to<JsonArray>();
-            JsonArray hTimeArr = sObj["hourTime"].to<JsonArray>();
-            int hStart = s.history.hourFull ? s.history.hourIdx : 0;
-            int hCount = s.history.hourFull ? MAX_HOUR_POINTS : s.history.hourIdx;
-            
-            for (int i = 0; i < hCount; i++) {
-                hArr.add(s.history.hourData[(hStart + i) % MAX_HOUR_POINTS]);
-                // Час у хвилинах від початку
-                hTimeArr.add(i);
-            }
-            
-            // Збираємо добові дані (96 точок за останню добу)
-            JsonArray dArr = sObj["day"].to<JsonArray>();
-            JsonArray dTimeArr = sObj["dayTime"].to<JsonArray>();
-            int dStart = s.history.dayFull ? s.history.dayIdx : 0;
-            int dCount = s.history.dayFull ? MAX_DAY_POINTS : s.history.dayIdx;
-            
-            for (int i = 0; i < dCount; i++) {
-                dArr.add(s.history.dayData[(dStart + i) % MAX_DAY_POINTS]);
-                // Час у хвилинах (15-хвилинні інтервали)
-                dTimeArr.add(i * 15);
-            }
+        // --- ГОДИННІ ДАНІ ---
+        JsonArray hArr = sObj["hour"].to<JsonArray>();
+        JsonArray hTimeArr = sObj["hourTime"].to<JsonArray>();
+        int hStart = s.history.hourFull ? s.history.hourIdx : 0;
+        int hCount = s.history.hourFull ? MAX_HOUR_POINTS : s.history.hourIdx;
+        
+        // Розраховуємо час для першої точки в історії (крок 60 сек)
+        time_t hBaseTime = now - (hCount * 60); 
+
+        for (int i = 0; i < hCount; i++) {
+            hArr.add(s.history.hourData[(hStart + i) % MAX_HOUR_POINTS]);
+            // Додаємо реальний час для кожної точки
+            hTimeArr.add(hBaseTime + (i * 60)); 
         }
         
-        String response;
-        serializeJson(doc, response);
-        request->send(200, "application/json", response); });
+        // --- ДОБОВІ ДАНІ ---
+        JsonArray dArr = sObj["day"].to<JsonArray>();
+        JsonArray dTimeArr = sObj["dayTime"].to<JsonArray>();
+        int dStart = s.history.dayFull ? s.history.dayIdx : 0;
+        int dCount = s.history.dayFull ? MAX_DAY_POINTS : s.history.dayIdx;
+        
+        // Розраховуємо час для першої точки (крок 15 хв = 900 сек)
+        time_t dBaseTime = now - (dCount * 900);
+
+        for (int i = 0; i < dCount; i++) {
+            dArr.add(s.history.dayData[(dStart + i) % MAX_DAY_POINTS]);
+            // Додаємо реальний час для кожної точки
+            dTimeArr.add(dBaseTime + (i * 900));
+        }
+    }
+    
+    
+
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response); });
 
     server.begin();
     return &server;

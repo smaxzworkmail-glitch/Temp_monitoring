@@ -352,8 +352,17 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { ticks: { color: '#888', maxTicksLimit: 8 } },
-                    y: { grid: { color: '#333' }, ticks: { color: '#888' } }
+                    x: {
+                        ticks: {
+                            color: '#888',
+                            maxTicksLimit: 8, // <--- ДОДАНО: обмеження кількості міток
+                            maxRotation: 0    // <--- ДОДАНО: текст завжди горизонтально
+                        }
+                    },
+                    y: {
+                        grid: { color: '#333' },
+                        ticks: { color: '#888' }
+                    }
                 },
                 plugins: {
                     legend: { position: 'bottom', labels: { color: '#ccc', boxWidth: 12 } },
@@ -363,6 +372,7 @@
                 interaction: { intersect: false, mode: 'index' }
             };
 
+            // Далі йде ініціалізація самих графіків...
             hourChart = new Chart(document.getElementById('hourChart'), { type: 'line', data: { labels: [], datasets: [] }, options });
             dayChart = new Chart(document.getElementById('dayChart'), { type: 'line', data: { labels: [], datasets: [] }, options });
 
@@ -414,7 +424,11 @@
             if (!sensors || sensors.length === 0) return;
 
             // Беремо мітки часу з першого датчика (вони однакові для всіх)
-            chart.data.labels = sensors[0][timeKey].map(t => t + " хв");
+            chart.data.labels = sensors[0][timeKey].map(t => {
+                let d = new Date(t * 1000); // Unix TS в мілісекунди
+                return d.getHours().toString().padStart(2, '0') + ':' +
+                    d.getMinutes().toString().padStart(2, '0');
+            });
 
             chart.data.datasets = sensors.map((s, i) => ({
                 label: s.name,
