@@ -44,10 +44,15 @@ void setup() {
     // Запускаємо Веб-сервер
     AsyncWebServer* serverPtr = initWebInterface(); 
     initSystemService(serverPtr);
-    generateFakeData();
 }
 
 void loop() {
     handleSensors();
+    static bool seeded = false; // Змінна, що пам'ятає, чи ми вже створювали дані
+    if (!seeded && time(nullptr) > 1000000) { 
+        Serial.println(">>> NTP Synced! Generating seed data...");
+        generateFakeData();
+        seeded = true; // Більше цей блок не виконається до перезавантаження
+    }
     delay(100); // Мінімальна пауза для стабільності фонових процесів
 }
