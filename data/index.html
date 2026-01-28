@@ -420,50 +420,10 @@
                 const liveDiv = document.getElementById('live-temps');
                 liveDiv.innerHTML = '';
 
-                // Оновлюємо заголовок (виконується один раз при завантаженні)
-                if (!config.title) {
-                    try {
-                        const cfgRes = await fetch('/api/config');
-                        config = await cfgRes.json();
-                        document.getElementById('app-title').textContent = '🌡️ ' + config.title;
-                        document.title = config.title;
-                        document.getElementById('serverName').textContent = config.ntpServer || 'pool.ntp.org';
-                    } catch (cfgErr) {
-                        console.warn("Config load failed", cfgErr);
-                    }
-                }
-
-                // 2. Отримуємо лог (фейкові + реальні дані)
-                try {
-                    const logsRes = await fetch('/logs');
-                    if (logsRes.ok) {
-                        const logsData = await logsRes.json();
-
-                        // Очищаємо графік перед заповненням
-                        hourChart.data.labels = [];
-                        hourChart.data.datasets[0].data = [];
-                        hourChart.data.datasets[1].data = [];
-
-                        logsData.forEach(line => {
-                            // Новий компактний формат: "HH:MM,T1,T2"
-                            const parts = line.split(',');
-                            if (parts.length >= 3) {
-                                hourChart.data.labels.push(parts[0].trim());
-                                hourChart.data.datasets[0].data.push(parseFloat(parts[1]));
-                                hourChart.data.datasets[1].data.push(parseFloat(parts[2]));
-                            }
-                        });
-                        hourChart.update('none'); // Оновлюємо без анімації для стабільності
-                    }
-                } catch (logErr) {
-                    console.error("Logs fetch failed (Internal Server Error 500 likely)", logErr);
-                }
-
-                // 3. Відображаємо плашки датчиків (навіть якщо логи не завантажились)
+                // 2. Оновлюємо плашки датчиків зверху
                 sensors.forEach((s, i) => {
                     const color = s.color || defaultColors[i % defaultColors.length];
                     const val = (s.current !== undefined && s.current > -50) ? s.current.toFixed(1) : '--';
-
                     liveDiv.innerHTML += `
                 <div class="temp-item" onclick="openSensorModal(${i})">
                     <div class="color-box" style="background-color: ${color};"></div>
@@ -472,10 +432,35 @@
                 </div>`;
                 });
 
-                dayChart.update('none');
+                // 3. Отримуємо логи (фейки + реальні)
+                try {
+                    const logsRes = await fetch('/logs');
+                    if (!logsRes.ok) throw new Error("Logs server error 500");
+
+                    const logsData = await logsRes.json();
+
+                    // Очищаємо графік перед заповненням
+                    hourChart.data.labels = [];
+                    hourChart.data.datasets[0].data = [];
+                    hourChart.data.datasets[1].data = [];
+
+                    logsData.forEach(line => {
+                        // Парсимо новий компактний формат: "HH:MM,T1,T2"
+                        const parts = line.split(',');
+                        if (parts.length >= 3) {
+                            hourChart.data.labels.push(parts[0].trim());
+                            hourChart.data.datasets[0].data.push(parseFloat(parts[1]));
+                            hourChart.data.datasets[1].data.push(parseFloat(parts[2]));
+                        }
+                    });
+
+                    hourChart.update('none');
+                } catch (logErr) {
+                    console.warn("Графік не оновлено:", logErr.message);
+                }
 
             } catch (e) {
-                console.error("Global update error:", e);
+                console.error("Критична помилка оновлення:", e);
             }
         }
 
