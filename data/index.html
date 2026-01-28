@@ -10,7 +10,7 @@
         body { font-family: -apple-system, sans-serif; background: #121212; color: #eee; margin: 0; padding: 15px; padding-bottom: 80px; }
         
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h1 { font-size: 1.2rem; color: #00adb5; margin: 0; flex: 1; cursor: pointer; }
+        h1 { font-size: 1.2rem; color: #00adb5; margin: 0; flex: 1; cursor: pointer; text-align: center; }
         h1:active { opacity: 0.7; }
         
         .card { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
@@ -18,7 +18,7 @@
         .temp-item { background: #252525; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: transform 0.1s; }
         .temp-item:active { transform: scale(0.95); }
         .temp-item .color-box { display: inline-block; width: 24px; height: 24px; border-radius: 6px; margin-bottom: 8px; border: 2px solid #333; }
-        .temp-name { display: block; font-size: 0.9rem; color: #00adb5; font-weight: bold; cursor: pointer; margin-bottom: 5px; }
+        .temp-name { display: block; font-size: 0.9rem; color: #00adb5; font-weight: bold; cursor: pointer; margin-bottom: 5px; word-break: break-word; }
         .temp-val { font-size: 1.5rem; font-weight: bold; display: block; }
         .label { font-size: 0.8rem; color: #888; }
         canvas { max-width: 100%; }
@@ -38,12 +38,19 @@
         .modal-close { background: none; border: none; color: #00adb5; font-size: 24px; cursor: pointer; }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
-        .form-group input { width: 100%; padding: 8px; background: #252525; border: 1px solid #333; border-radius: 6px; color: #eee; font-family: inherit; }
-        .form-group input:focus { outline: none; border-color: #00adb5; }
+        .form-group input[type="text"] { width: 100%; padding: 8px; background: #252525; border: 1px solid #333; border-radius: 6px; color: #eee; font-family: inherit; }
+        .form-group input[type="text"]:focus { outline: none; border-color: #00adb5; }
+        .color-picker-group { display: flex; gap: 10px; align-items: center; }
+        .color-picker-group input[type="color"] { width: 60px; height: 40px; border: none; border-radius: 6px; cursor: pointer; }
+        .color-value { color: #aaa; font-size: 0.9rem; min-width: 70px; }
         .btn { background: #00adb5; color: #000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .btn:active { transform: scale(0.95); }
-        .btn-cancel { background: #555; color: #eee; margin-left: 10px; }
+        .btn-cancel { background: #555; color: #eee; }
         .btn-group { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+        
+        .chart-container { position: relative; margin-bottom: 10px; }
+        .crosshair-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #00adb5; opacity: 0.5; pointer-events: none; display: none; }
+        .tooltip-hover { position: absolute; background: #252525; border: 1px solid #00adb5; padding: 8px; border-radius: 6px; font-size: 0.85rem; pointer-events: none; display: none; z-index: 100; }
     </style>
 </head>
 <body>
@@ -55,12 +62,20 @@
 
     <div class="card">
         <div class="label">Година</div>
-        <canvas id="hourChart"></canvas>
+        <div class="chart-container">
+            <div class="crosshair-line" id="hourCrosshair"></div>
+            <div class="tooltip-hover" id="hourTooltip"></div>
+            <canvas id="hourChart"></canvas>
+        </div>
     </div>
 
     <div class="card">
         <div class="label">Доба</div>
-        <canvas id="dayChart"></canvas>
+        <div class="chart-container">
+            <div class="crosshair-line" id="dayCrosshair"></div>
+            <div class="tooltip-hover" id="dayTooltip"></div>
+            <canvas id="dayChart"></canvas>
+        </div>
     </div>
 
     <!-- Footer з часом -->
@@ -82,7 +97,10 @@
             </div>
             <div class="form-group">
                 <label>Колір</label>
-                <input type="color" id="sensorColor">
+                <div class="color-picker-group">
+                    <input type="color" id="sensorColor">
+                    <span class="color-value" id="colorValue"></span>
+                </div>
             </div>
             <div class="btn-group">
                 <button class="btn" onclick="saveSensorConfig()">Зберегти</button>
@@ -110,6 +128,8 @@
     </div>
 
     <script>
+        const defaultColors = ['#ff5722', '#00adb5', '#8bc34a', '#ffeb3b', '#e91e63'];
+        
         let hourChart, dayChart;
         let config = {};
         let editingSensorId = null;
@@ -117,13 +137,36 @@
         function initCharts() {
             const commonOptions = {
                 responsive: true,
-                scales: { x: { display: false }, y: { grid: { color: '#333' } } },
-                plugins: { legend: { position: 'bottom', labels: { color: '#ccc' } } },
-                animation: false
+                maintainAspectRatio: true,
+                scales: { 
+                    x: { 
+                        display: true,
+                        ticks: { color: '#888', maxTicksLimit: 6 }
+                    }, 
+                    y: { 
+                        grid: { color: '#333' },
+                        ticks: { color: '#888' }
+                    } 
+                },
+                plugins: { 
+                    legend: { position: 'bottom', labels: { color: '#ccc' } },
+                    tooltip: { enabled: true, mode: 'index', intersect: false }
+                },
+                animation: false,
+                interaction: { intersect: false, mode: 'index' }
             };
 
-            hourChart = new Chart(document.getElementById('hourChart'), { type: 'line', data: { labels: [], datasets: [] }, options: commonOptions });
-            dayChart = new Chart(document.getElementById('dayChart'), { type: 'line', data: { labels: [], datasets: [] }, options: commonOptions });
+            hourChart = new Chart(document.getElementById('hourChart'), { 
+                type: 'line', 
+                data: { labels: [], datasets: [] }, 
+                options: commonOptions 
+            });
+            
+            dayChart = new Chart(document.getElementById('dayChart'), { 
+                type: 'line', 
+                data: { labels: [], datasets: [] }, 
+                options: commonOptions 
+            });
         }
 
         function updateTime() {
@@ -135,6 +178,12 @@
             const year = now.getFullYear();
             
             document.getElementById('timeDisplay').textContent = `${hours}:${mins} ${day}.${month}.${year}`;
+        }
+
+        function formatTimeLabel(minutes) {
+            const hour = Math.floor(minutes / 60);
+            const min = minutes % 60;
+            return `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
         }
 
         async function updateData() {
@@ -155,27 +204,30 @@
                 }
                 
                 data.forEach((sensor, i) => {
-                    const color = sensor.color || '#00adb5';
+                    // Використовуємо колір з конфігу, або дефолтний
+                    const color = sensor.color || defaultColors[i % defaultColors.length];
+                    
                     const tempHtml = `
                         <div class="temp-item" onclick="openSensorModal(${i})">
-                            <div class="color-box" style="background-color: ${color}; margin-left: -4px; margin-right: -4px;"></div>
-                            <span class="temp-name" onclick="event.stopPropagation(); editSensorName(${i})">${sensor.name}</span>
+                            <div class="color-box" style="background-color: ${color};"></div>
+                            <span class="temp-name" onclick="event.stopPropagation();">${sensor.name}</span>
                             <span class="temp-val">${sensor.current > -50 ? sensor.current.toFixed(1) : '--'}°C</span>
                         </div>
                     `;
                     liveDiv.innerHTML += tempHtml;
                     
-                    // Дані для графіків
-                    updateDataset(hourChart, i, sensor.name, sensor.hour, color);
-                    updateDataset(dayChart, i, sensor.name, sensor.day, color);
+                    // Дані для графіків з часовими мітками
+                    updateDataset(hourChart, i, sensor.name, sensor.hour, sensor.hourTime, color, false);
+                    updateDataset(dayChart, i, sensor.name, sensor.day, sensor.dayTime, color, true);
                 });
 
                 hourChart.update();
                 dayChart.update();
+                setupChartInteraction();
             } catch (e) { console.error("Data error", e); }
         }
 
-        function updateDataset(chart, index, name, points, color) {
+        function updateDataset(chart, index, name, points, times, color, isDayChart) {
             if (!chart.data.datasets[index]) {
                 chart.data.datasets[index] = { 
                     label: name, 
@@ -192,17 +244,94 @@
                 chart.data.datasets[index].backgroundColor = color + '20';
             }
             chart.data.datasets[index].data = points;
-            if (chart.data.labels.length < points.length) {
-                chart.data.labels = Array(points.length).fill('');
+            
+            // Генеруємо часові мітки
+            if (times && times.length > 0) {
+                chart.data.labels = times.map((t, i) => {
+                    if (isDayChart) {
+                        // Для добового графіка показуємо час кожні 12 точок (3 години)
+                        return i % 12 === 0 ? formatTimeLabel(t) : '';
+                    } else {
+                        // Для годинного графіка показуємо час кожні 10 точок
+                        return i % 10 === 0 ? formatTimeLabel(t) : '';
+                    }
+                });
             }
         }
 
-        // Редагування датчика (коліс + назва)
+        function setupChartInteraction() {
+            setupChartCrosshair('hourChart', 'hourCrosshair', 'hourTooltip', hourChart);
+            setupChartCrosshair('dayChart', 'dayCrosshair', 'dayTooltip', dayChart);
+        }
+
+        function setupChartCrosshair(canvasId, crosshairId, tooltipId, chart) {
+            const canvas = document.getElementById(canvasId);
+            const crosshair = document.getElementById(crosshairId);
+            const tooltip = document.getElementById(tooltipId);
+            
+            canvas.addEventListener('mousemove', (e) => showChartCrosshair(e, canvas, crosshair, tooltip, chart));
+            canvas.addEventListener('mouseleave', () => {
+                crosshair.style.display = 'none';
+                tooltip.style.display = 'none';
+            });
+            
+            canvas.addEventListener('touchmove', (e) => showChartCrosshair(e, canvas, crosshair, tooltip, chart));
+            canvas.addEventListener('touchend', () => {
+                crosshair.style.display = 'none';
+                tooltip.style.display = 'none';
+            });
+        }
+
+        function showChartCrosshair(e, canvas, crosshair, tooltip, chart) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.touches ? e.touches[0].clientX - rect.left : e.offsetX;
+            
+            const canvasWidth = canvas.width;
+            const dataLength = chart.data.datasets[0]?.data.length || 1;
+            const dataIndex = Math.round((x / canvasWidth) * dataLength);
+            
+            // Показуємо лінію
+            crosshair.style.display = 'block';
+            crosshair.style.left = x + 'px';
+            
+            // Показуємо дані
+            if (dataIndex >= 0 && dataIndex < dataLength) {
+                let tooltipText = '<strong>Значення:</strong><br>';
+                let hasData = false;
+                
+                chart.data.datasets.forEach(dataset => {
+                    const val = dataset.data[dataIndex];
+                    if (val !== undefined && val > -50) {
+                        tooltipText += `${dataset.label}: ${val.toFixed(1)}°C<br>`;
+                        hasData = true;
+                    }
+                });
+                
+                if (hasData) {
+                    tooltip.innerHTML = tooltipText;
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = Math.min(x + 10, canvasWidth - 150) + 'px';
+                    tooltip.style.top = '10px';
+                }
+            }
+        }
+
+        // Редагування датчика
         function openSensorModal(sensorId) {
             editingSensorId = sensorId;
             const sensor = config.sensors[sensorId];
+            const colorInput = document.getElementById('sensorColor');
+            const colorValue = document.getElementById('colorValue');
+            
             document.getElementById('sensorName').value = sensor.name;
-            document.getElementById('sensorColor').value = sensor.color || '#ff5722';
+            const sensorColor = sensor.color || defaultColors[sensorId % defaultColors.length];
+            colorInput.value = sensorColor;
+            colorValue.textContent = sensorColor;
+            
+            colorInput.addEventListener('change', () => {
+                colorValue.textContent = colorInput.value;
+            });
+            
             document.getElementById('sensorModal').classList.add('active');
         }
 
@@ -221,7 +350,7 @@
                 sensors: config.sensors.map((s, i) => ({
                     id: i,
                     name: i === editingSensorId ? document.getElementById('sensorName').value : s.name,
-                    color: i === editingSensorId ? document.getElementById('sensorColor').value : s.color
+                    color: i === editingSensorId ? document.getElementById('sensorColor').value : (s.color || defaultColors[i % defaultColors.length])
                 }))
             };
             
@@ -236,11 +365,6 @@
                 updateData();
             })
             .catch(e => alert('Помилка: ' + e));
-        }
-
-        // Редагування тільки назви (клік на текст)
-        function editSensorName(sensorId) {
-            openSensorModal(sensorId);
         }
 
         // NTP модал
@@ -279,7 +403,7 @@
         updateData();
         updateTime();
         setInterval(updateData, 10000);
-        setInterval(updateTime, 1000); // Оновлення часу кожну секунду
+        setInterval(updateTime, 1000);
     </script>
 </body>
 </html>

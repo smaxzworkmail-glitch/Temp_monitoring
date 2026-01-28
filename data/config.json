@@ -12,6 +12,26 @@
       "id": 0,
       "name": "Датчик 1",
       "color": "#ff5722"
+    },
+    {
+      "id": 1,
+      "name": "Датчик 2",
+      "color": "#00adb5"
+    },
+    {
+      "id": 2,
+      "name": "Датчик 3",
+      "color": "#8bc34a"
+    },
+    {
+      "id": 3,
+      "name": "Датчик 4",
+      "color": "#ffeb3b"
+    },
+    {
+      "id": 4,
+      "name": "Датчик 5",
+      "color": "#e91e63"
     }
   ],
   "updateInterval": 30000

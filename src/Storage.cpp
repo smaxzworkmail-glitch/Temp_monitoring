@@ -1,4 +1,8 @@
 #include "Storage.h"
+#include "Sensors.h"
+
+// Forward declaration or include the header that defines getSensors()
+// If getSensors() is defined elsewhere, make sure Storage.h includes the appropriate header
 
 bool initStorage() {
     return LittleFS.begin(true);
@@ -45,6 +49,16 @@ void saveAppConfig(const AppConfig& config) {
     doc["updateInterval"] = config.updateInterval;
     doc["wifi"]["ssid"] = config.wifiSSID;
     doc["wifi"]["password"] = config.wifiPassword;
+    
+    // Зберігаємо датчики з їх назвами та кольорами
+    JsonArray sensorsArr = doc["sensors"].to<JsonArray>();
+    auto& sensors = getSensors();
+    for (size_t i = 0; i < sensors.size(); i++) {
+        JsonObject sObj = sensorsArr.add<JsonObject>();
+        sObj["id"] = i;
+        sObj["name"] = sensors[i].name;
+        sObj["color"] = sensors[i].color;
+    }
     
     saveConfig(doc);
 }
