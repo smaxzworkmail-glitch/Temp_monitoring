@@ -412,68 +412,70 @@
 
         async function updateData() {
             try {
-                // 1. Отримуємо живі дані для віджетів
+                // 1. Отримуємо живі дані датчиків
                 const res = await fetch('/api/data');
+                if (!res.ok) throw new Error("API error");
                 const sensors = await res.json();
 
                 const liveDiv = document.getElementById('live-temps');
                 liveDiv.innerHTML = '';
 
-                // Оновлюємо заголовок один раз
+                // Оновлюємо заголовок (виконується один раз при завантаженні)
                 if (!config.title) {
-                    const cfgRes = await fetch('/api/config');
-                    config = await cfgRes.json();
-                    document.getElementById('app-title').textContent = '🌡️ ' + config.title;
-                    document.title = config.title;
+                    try {
+                        const cfgRes = await fetch('/api/config');
+                        config = await cfgRes.json();
+                        document.getElementById('app-title').textContent = '🌡️ ' + config.title;
+                        document.title = config.title;
+                        document.getElementById('serverName').textContent = config.ntpServer || 'pool.ntp.org';
+                    } catch (cfgErr) {
+                        console.warn("Config load failed", cfgErr);
+                    }
                 }
 
-                // 2. Отримуємо лог (і фейки, і реальні)
-                const logsRes = await fetch('/logs');
-                const logsData = await logsRes.json();
+                // 2. Отримуємо лог (фейкові + реальні дані)
+                try {
+                    const logsRes = await fetch('/logs');
+                    if (logsRes.ok) {
+                        const logsData = await logsRes.json();
 
-                // Очищаємо графік перед заповненням
-                hourChart.data.labels = [];
-                hourChart.data.datasets[0].data = [];
-                hourChart.data.datasets[1].data = [];
+                        // Очищаємо графік перед заповненням
+                        hourChart.data.labels = [];
+                        hourChart.data.datasets[0].data = [];
+                        hourChart.data.datasets[1].data = [];
 
-                // 3. Універсальний парсер
-                logsData.forEach(entry => {
-                    let time, t1, t2;
-
-                    if (typeof entry === 'string' && entry.includes('|')) {
-                        // Парсимо фейковий рядок "HH:MM | T1 | T2"
-                        const parts = entry.split('|').map(p => p.trim());
-                        time = parts[0];
-                        t1 = parseFloat(parts[1]);
-                        t2 = parseFloat(parts[2]);
-                    } else if (entry.time) {
-                        // Парсимо стандартний JSON об'єкт, якщо він є
-                        time = entry.time;
-                        t1 = entry.temp1;
-                        t2 = entry.temp2;
+                        logsData.forEach(line => {
+                            // Новий компактний формат: "HH:MM,T1,T2"
+                            const parts = line.split(',');
+                            if (parts.length >= 3) {
+                                hourChart.data.labels.push(parts[0].trim());
+                                hourChart.data.datasets[0].data.push(parseFloat(parts[1]));
+                                hourChart.data.datasets[1].data.push(parseFloat(parts[2]));
+                            }
+                        });
+                        hourChart.update('none'); // Оновлюємо без анімації для стабільності
                     }
+                } catch (logErr) {
+                    console.error("Logs fetch failed (Internal Server Error 500 likely)", logErr);
+                }
 
-                    if (time && !isNaN(t1)) {
-                        hourChart.data.labels.push(time);
-                        hourChart.data.datasets[0].data.push(t1);
-                        hourChart.data.datasets[1].data.push(t2);
-                    }
-                });
-
-                // Оновлюємо віджети зверху
+                // 3. Відображаємо плашки датчиків (навіть якщо логи не завантажились)
                 sensors.forEach((s, i) => {
                     const color = s.color || defaultColors[i % defaultColors.length];
+                    const val = (s.current !== undefined && s.current > -50) ? s.current.toFixed(1) : '--';
+
                     liveDiv.innerHTML += `
-                <div class="temp-item">
+                <div class="temp-item" onclick="openSensorModal(${i})">
                     <div class="color-box" style="background-color: ${color};"></div>
-                    <span class="temp-name">${s.name}</span>
-                    <span class="temp-val">${s.current > -50 ? s.current.toFixed(1) : '--'}°C</span>
+                    <span class="temp-name">${s.name || 'Датчик ' + (i + 1)}</span>
+                    <span class="temp-val">${val}°C</span>
                 </div>`;
                 });
 
-                hourChart.update('none'); // Оновлюємо без анімації для швидкості
+                dayChart.update('none');
+
             } catch (e) {
-                console.error("Помилка оновлення даних:", e);
+                console.error("Global update error:", e);
             }
         }
 

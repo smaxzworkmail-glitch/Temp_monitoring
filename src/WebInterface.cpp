@@ -12,51 +12,52 @@ std::deque<String> systemLogs;
 
 // Extern для доступу до глобальної конфіґурації з main.cpp
 extern AppConfig appConfig;
-extern void initNTP(const char* server);
+extern void initNTP(const char *server);
 
 // Функція для додавання нового логу
-void addLog(String msg) {
+void addLog(String msg)
+{
     String timestampedMsg = "[" + getTimeStr() + "] " + msg;
     systemLogs.push_back(timestampedMsg);
-    if (systemLogs.size() > 100) systemLogs.pop_front();
+    if (systemLogs.size() > 100)
+        systemLogs.pop_front();
     Serial.println(timestampedMsg);
 }
 
-void generateFakeData() {
+void generateFakeData()
+{
     time_t now;
     time(&now);
-    
-    // Генеруємо 60 точок (одна на хвилину)
-    for (int i = 60; i > 0; i--) {
+
+    systemLogs.clear(); // Очищуємо старе перед генерацією
+
+    for (int i = 60; i > 0; i--)
+    {
         time_t fakeTime = now - (i * 60);
-        struct tm * tm_info = localtime(&fakeTime);
-        char tStr[10];
-        strftime(tStr, 10, "%H:%M", tm_info);
+        struct tm *tm_info = localtime(&fakeTime);
+        char tStr[6];
+        strftime(tStr, 6, "%H:%M", tm_info);
 
-        // Математика для плавних ліній
-        float t1 = 45.0 + 15.0 * sin(i * 0.2);
-        float t2 = 30.0 + 10.0 * sin(i * 0.3);
+        // Короткий формат: "HH:MM,T1,T2" (без зайвих пробілів)
+        float t1 = 30.0 + 2.0 * sin(i * 0.2);
+        float t2 = 25.0 + 1.5 * cos(i * 0.3);
 
-        // Формуємо рядок так, як його чекає твій фронтенд
-        // (Приклад: "14:20 | 45.5 | 31.2")
-        String fakeLog = String(tStr) + " | " + String(t1, 1) + " | " + String(t2, 1);
-        
-        // Додаємо в твою чергу deque<String> systemLogs
-        systemLogs.push_back(fakeLog);
-        if (systemLogs.size() > 100) systemLogs.pop_front();
+        String shortLog = String(tStr) + "," + String(t1, 1) + "," + String(t2, 1);
+        systemLogs.push_back(shortLog);
     }
-    Serial.println("Seed data generated for charts.");
+    Serial.println("Compact seed data generated.");
 }
 
-AsyncWebServer* initWebInterface() {
+AsyncWebServer *initWebInterface()
+{
 
     // Головна сторінка
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(LittleFS, "/index.html", "text/html");
-    });
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+              { request->send(LittleFS, "/index.html", "text/html"); });
 
     // API для отримання поточної конфіґурації
-    server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/api/config", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
         JsonDocument doc;
         doc["version"] = appConfig.version;
         doc["title"] = appConfig.title;
@@ -78,13 +79,12 @@ AsyncWebServer* initWebInterface() {
         
         String response;
         serializeJson(doc, response);
-        request->send(200, "application/json; charset=utf-8", response);
-    });
+        request->send(200, "application/json; charset=utf-8", response); });
 
     // API для оновлення конфіґурації
-    server.on("/api/config", HTTP_POST, [](AsyncWebServerRequest *request){
-        request->send(200, "application/json", "{\"status\": \"pending\"}");
-    }, nullptr, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+    server.on("/api/config", HTTP_POST, [](AsyncWebServerRequest *request)
+              { request->send(200, "application/json", "{\"status\": \"pending\"}"); }, nullptr, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+              {
         static JsonDocument updateDoc;
         
         if (index == 0) {
@@ -133,10 +133,10 @@ AsyncWebServer* initWebInterface() {
             
             // Відправляємо відповідь
             request->send(200, "application/json", "{\"status\": \"ok\", \"message\": \"Конфіґурація оновлена\"}");
-        }
-    });
+        } });
 
-    server.on("/api/terminal", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/api/terminal", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
         JsonDocument doc;
         doc["uptime"] = millis() / 1000;
         doc["free_heap"] = ESP.getFreeHeap();
@@ -148,27 +148,27 @@ AsyncWebServer* initWebInterface() {
         
         String response;
         serializeJson(doc, response);
-        request->send(200, "application/json", response);
-    });
+        request->send(200, "application/json", response); });
 
-    server.on("/api/terminal/raw", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/api/terminal/raw", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
         String raw = "";
         for (auto const& log : systemLogs) {
             raw += log + "\n";
         }
-        request->send(200, "text/plain", raw);
-    });
+        request->send(200, "text/plain", raw); });
 
-    server.on("/log", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/log", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
         String out = "";
         for (auto const& msg : systemLogs) {
             out += msg + "\r\n";
         }
-        request->send(200, "text/plain; charset=utf-8", out);
-    });
+        request->send(200, "text/plain; charset=utf-8", out); });
 
     // API для Zabbix - окремі слоти
-    server.on("/slot", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/slot", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
         int slotId = 0;
         if (request->hasParam("id")) {
             slotId = request->getParam("id")->value().toInt();
@@ -191,11 +191,11 @@ AsyncWebServer* initWebInterface() {
             request->send(200, "application/json; charset=utf-8", response);
         } else {
             request->send(404, "application/json", "{\"error\": \"Slot not found\"}");
-        }
-    });
+        } });
 
     // API для отримання всіх слотів
-    server.on("/api/slots", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/api/slots", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
         JsonDocument doc;
         auto& sensors = getSensors();
         
@@ -213,11 +213,11 @@ AsyncWebServer* initWebInterface() {
         
         String response;
         serializeJson(doc, response);
-        request->send(200, "application/json; charset=utf-8", response);
-    });
+        request->send(200, "application/json; charset=utf-8", response); });
 
     // API для отримання даних датчиків з часовими мітками
-    server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
         JsonDocument doc;
         auto& sensors = getSensors();
         time_t now = time(nullptr);
@@ -255,8 +255,7 @@ AsyncWebServer* initWebInterface() {
         
         String response;
         serializeJson(doc, response);
-        request->send(200, "application/json", response);
-    });
+        request->send(200, "application/json", response); });
 
     server.begin();
     return &server;
