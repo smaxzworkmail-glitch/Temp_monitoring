@@ -24,29 +24,6 @@ void addLog(String msg)
     Serial.println(timestampedMsg);
 }
 
-void generateFakeData()
-{
-    time_t now;
-    time(&now);
-
-    systemLogs.clear(); // Очищуємо старе перед генерацією
-
-    for (int i = 30; i > 0; i--)
-    {
-        time_t fakeTime = now - (i * 60);
-        struct tm *tm_info = localtime(&fakeTime);
-        char tStr[6];
-        strftime(tStr, 6, "%H:%M", tm_info);
-
-        // Короткий формат: "HH:MM,T1,T2" (без зайвих пробілів)
-        float t1 = 30.0 + 2.0 * sin(i * 0.2);
-        float t2 = 25.0 + 1.5 * cos(i * 0.3);
-
-        String shortLog = String(tStr) + "," + String(t1, 1) + "," + String(t2, 1);
-        systemLogs.push_back(shortLog);
-    }
-    Serial.println("Compact seed data generated.");
-}
 
 AsyncWebServer *initWebInterface()
 {
