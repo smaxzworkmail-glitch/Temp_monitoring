@@ -7,5 +7,6 @@
 
 //void initWebInterface();
 AsyncWebServer* initWebInterface();
+void generateFakeData();
 
 #endif
