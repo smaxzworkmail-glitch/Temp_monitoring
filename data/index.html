@@ -7,7 +7,10 @@
     <title id="page-title">Моніторинг</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, sans-serif;
             background: #121212;
@@ -16,42 +19,229 @@
             padding: 15px;
             padding-bottom: 80px;
         }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        h1 { font-size: 1.2rem; color: #00adb5; margin: 0; flex: 1; cursor: pointer; text-align: center; }
-        .card { background: #1e1e1e; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); }
-        .temp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .temp-item { background: #252525; padding: 10px; border-radius: 8px; text-align: center; cursor: pointer; transition: transform 0.1s; }
-        .temp-item:active { transform: scale(0.95); }
-        .temp-item .color-box { display: inline-block; width: 24px; height: 24px; border-radius: 6px; margin-bottom: 8px; border: 2px solid #333; }
-        .temp-name { display: block; font-size: 0.9rem; color: #00adb5; font-weight: bold; margin-bottom: 5px; word-break: break-word; }
-        .temp-val { font-size: 1.5rem; font-weight: bold; display: block; }
-        .label { font-size: 0.8rem; color: #888; margin-bottom: 5px; }
-        
-        .chart-container { position: relative; height: 220px; margin-bottom: 10px; }
-        canvas { width: 100% !important; height: 100% !important; }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.2rem;
+            color: #00adb5;
+            margin: 0;
+            flex: 1;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .card {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .temp-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .temp-item {
+            background: #252525;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .temp-item:active {
+            transform: scale(0.95);
+        }
+
+        .temp-item .color-box {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border: 2px solid #333;
+        }
+
+        .temp-name {
+            display: block;
+            font-size: 0.9rem;
+            color: #00adb5;
+            font-weight: bold;
+            margin-bottom: 5px;
+            word-break: break-word;
+        }
+
+        .temp-val {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 220px;
+            margin-bottom: 10px;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
 
         /* Footer */
-        .footer { position: fixed; bottom: 0; left: 0; right: 0; background: #1e1e1e; border-top: 1px solid #333; padding: 15px; text-align: center; z-index: 10; }
-        .time-display { font-size: 1.5rem; color: #00adb5; cursor: pointer; font-weight: bold; }
-        .server-name { font-size: 0.75rem; color: #666; margin-top: 5px; }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #1e1e1e;
+            border-top: 1px solid #333;
+            padding: 15px;
+            text-align: center;
+            z-index: 10;
+        }
+
+        .time-display {
+            font-size: 1.5rem;
+            color: #00adb5;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .server-name {
+            font-size: 0.75rem;
+            color: #666;
+            margin-top: 5px;
+        }
 
         /* Modals */
-        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: #1e1e1e; border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-close { background: none; border: none; color: #00adb5; font-size: 24px; cursor: pointer; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-size: 0.9rem; }
-        .form-group input[type="text"] { width: 100%; padding: 8px; background: #252525; border: 1px solid #333; border-radius: 6px; color: #eee; }
-        .color-picker-group { display: flex; gap: 10px; align-items: center; }
-        .btn { background: #00adb5; color: #000; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .btn-cancel { background: #555; color: #eee; }
-        .btn-group { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e1e1e;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #00adb5;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            background: #252525;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #eee;
+        }
+
+        .color-picker-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .btn {
+            background: #00adb5;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-cancel {
+            background: #555;
+            color: #eee;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
 
         /* Chart Overlays */
-        .crosshair-line { position: absolute; top: 0; bottom: 0; width: 1px; background: #00adb5; opacity: 0.5; pointer-events: none; display: none; }
-        .tooltip-hover { position: absolute; background: #252525; border: 1px solid #00adb5; padding: 8px; border-radius: 6px; font-size: 0.85rem; pointer-events: none; display: none; z-index: 100; }
+        .crosshair-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: #00adb5;
+            opacity: 0.5;
+            pointer-events: none;
+            display: none;
+        }
+
+        .tooltip-hover {
+            position: absolute;
+            background: #252525;
+            border: 1px solid #00adb5;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            pointer-events: none;
+            display: none;
+            z-index: 100;
+        }
     </style>
 </head>
 
@@ -134,18 +324,27 @@
         // --- Ініціалізація ---
         async function init() {
             initCharts();
-            await loadConfig();
-            
-            // Перший запуск даних
-            updateLive(); 
-            updateHourChart();
-            updateDayChart();
-            
-            // Налаштування інтервалів оновлення (AJAX опитування)
-            setInterval(updateLive, 10000);       // Цифри: кожні 10 сек
-            setInterval(updateHourChart, 60000);   // Година: кожну 1 хв
-            setInterval(updateDayChart, 900000);   // Доба: кожні 15 хв
-            setInterval(updateTime, 1000);         // Годинник у футері
+
+            try {
+                // 1. Спочатку конфіг і живі дані
+                await loadConfig();
+                await updateLive();
+
+                // 2. Невелика пауза 500мс, щоб ESP "віддихалася"
+                await new Promise(r => setTimeout(r, 500));
+
+                // 3. Завантажуємо графіки по черзі
+                await updateHourChart();
+                await new Promise(r => setTimeout(r, 500));
+                await updateDayChart();
+
+            } catch (e) { console.error("Помилка ініціалізації", e); }
+
+            // Налаштування інтервалів
+            setInterval(updateLive, 10000);
+            setInterval(updateHourChart, 60000);
+            setInterval(updateDayChart, 900000);
+            setInterval(updateTime, 1000);
         }
 
         function initCharts() {
@@ -220,38 +419,47 @@
         }
 
         function renderChart(chart, logs, sensors, labelStep) {
-            if (!logs || logs.length === 0 || !sensors || sensors.length === 0) return;
-            
-            chart.data.labels = logs.map((line, idx) => {
-                const p = line.split(',');
-                return idx % labelStep === 0 ? p[0].trim() : '';
-            });
+            // Перевірка: якщо немає логів або опису датчиків - нічого не робимо
+            if (!logs || !Array.isArray(logs) || logs.length === 0 || !sensors || sensors.length === 0) {
+                console.warn("Дані для графіка відсутні або пошкоджені");
+                return;
+            }
 
-            chart.data.datasets = sensors.map((s, i) => {
-                const color = s.color || COLORS[i % COLORS.length];
-                return {
-                    label: s.name,
-                    data: logs.map(line => {
-                        const p = line.split(',');
-                        const val = parseFloat(p[i + 1]);
-                        return (val > -50) ? val : null;
-                    }),
-                    borderColor: color,
-                    backgroundColor: color,
-                    tension: 0.3,
-                    pointRadius: 0,
-                    borderWidth: 2
-                };
-            });
+            try {
+                chart.data.labels = logs.map((line, idx) => {
+                    const p = line.split(',');
+                    return (p[0] && idx % labelStep === 0) ? p[0].trim() : '';
+                });
 
-            chart.update('none'); 
+                chart.data.datasets = sensors.map((s, i) => {
+                    if (!s) return { label: '?', data: [] }; // Захист від undefined
+                    const color = s.color || COLORS[i % COLORS.length];
+                    return {
+                        label: s.name || `Датчик ${i + 1}`,
+                        data: logs.map(line => {
+                            const p = line.split(',');
+                            const val = parseFloat(p[i + 1]);
+                            return (isNaN(val) || val <= -50) ? null : val;
+                        }),
+                        borderColor: color,
+                        backgroundColor: color,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    };
+                });
+
+                chart.update('none');
+            } catch (err) {
+                console.error("Помилка візуалізації графіка:", err);
+            }
         }
 
         function updateTime() {
             const now = new Date();
             const fmt = (n) => String(n).padStart(2, '0');
-            document.getElementById('timeDisplay').textContent = 
-                `${fmt(now.getDate())}.${fmt(now.getMonth()+1)} ${fmt(now.getHours())}:${fmt(now.getMinutes())}`;
+            document.getElementById('timeDisplay').textContent =
+                `${fmt(now.getDate())}.${fmt(now.getMonth() + 1)} ${fmt(now.getHours())}:${fmt(now.getMinutes())}`;
         }
 
         function setupChartInteraction(canvasId, crossId, toolId, chart) {
@@ -330,4 +538,5 @@
         init();
     </script>
 </body>
+
 </html>
