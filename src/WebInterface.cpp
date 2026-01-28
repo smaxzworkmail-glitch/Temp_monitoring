@@ -24,9 +24,12 @@ void addLog(String msg)
     Serial.println(timestampedMsg);
 }
 
-
 AsyncWebServer *initWebInterface()
 {
+    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request)
+              {
+                  request->send(404); // Або відправте файл, якщо він є в LittleFS
+              });
 
     // Головна сторінка
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -60,57 +63,43 @@ AsyncWebServer *initWebInterface()
 
     // API для оновлення конфіґурації
     server.on("/api/config", HTTP_POST, [](AsyncWebServerRequest *request)
-              { request->send(200, "application/json", "{\"status\": \"pending\"}"); }, nullptr, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
+              { request->send(200, "application/json", "{\"status\": \"ok\"}"); }, nullptr, [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
               {
-        static JsonDocument updateDoc;
+    static String buffer;
+    if (index == 0) buffer = "";
+    buffer += (char*)data;
+
+    if (index + len == total) {
+        JsonDocument updateDoc;
+        DeserializationError error = deserializeJson(updateDoc, buffer);
         
-        if (index == 0) {
-            updateDoc.clear();
-        }
-        
-        // Парсимо JSON
-        DeserializationError error = deserializeJson(updateDoc, data, len);
-        
-        if (index + len == total) {
-            // Оновлюємо конфіґ в пам'яті
-            if (updateDoc.containsKey("title")) {
-                appConfig.title = updateDoc["title"].as<String>();
-            }
+        if (!error) {
+            if (updateDoc.containsKey("title")) appConfig.title = updateDoc["title"].as<String>();
             if (updateDoc.containsKey("ntpServer")) {
-                String newNTP = updateDoc["ntpServer"].as<String>();
-                appConfig.ntpServer = newNTP;
-                initNTP(newNTP.c_str());
-                addLog("NTP сервер змінено на: " + newNTP);
-            }
-            if (updateDoc.containsKey("updateInterval")) {
-                appConfig.updateInterval = updateDoc["updateInterval"].as<int>();
+                appConfig.ntpServer = updateDoc["ntpServer"].as<String>();
+                initNTP(appConfig.ntpServer.c_str());
             }
             
-            // Оновлюємо датчики
-            if (updateDoc.containsKey("sensors")) {
-                auto sensorsUpd = updateDoc["sensors"].as<JsonArray>();
+            // Оновлення датчиків
+            if (updateDoc["sensors"].is<JsonArray>()) {
                 auto& sensors = getSensors();
-                int idx = 0;
-                for (auto sensor : sensorsUpd) {
-                    if (idx < (int)sensors.size()) {
-                        if (sensor.containsKey("name")) {
-                            sensors[idx].name = sensor["name"].as<String>();
-                        }
-                        if (sensor.containsKey("color")) {
-                            sensors[idx].color = sensor["color"].as<String>();
-                        }
+                JsonArray sa = updateDoc["sensors"];
+                for (JsonObject s : sa) {
+                    int id = s["id"];
+                    if (id >= 0 && id < (int)sensors.size()) {
+                        if (s.containsKey("name")) sensors[id].name = s["name"].as<String>();
+                        if (s.containsKey("color")) sensors[id].color = s["color"].as<String>();
                     }
-                    idx++;
                 }
             }
-            
-            // Зберігаємо на флеш
             saveAppConfig(appConfig);
-            addLog("Конфіґурація оновлена і збережена");
-            
-            // Відправляємо відповідь
-            request->send(200, "application/json", "{\"status\": \"ok\", \"message\": \"Конфіґурація оновлена\"}");
-        } });
+            buffer = ""; 
+        // Замість shrink_to_fit використовуємо:
+    buffer.clear();
+            addLog("Конфігурація збережена");
+        }
+        buffer = ""; // Очистка
+    } });
 
     server.on("/api/terminal", HTTP_GET, [](AsyncWebServerRequest *request)
               {

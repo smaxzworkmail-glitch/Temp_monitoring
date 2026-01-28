@@ -399,23 +399,31 @@
         }
 
         async function updateHourChart() {
-            try {
-                const res = await fetch('/logs');
-                if (res.ok) {
-                    const logs = await res.json();
-                    renderChart(hourChart, logs, window.allSensors || [], 5);
-                }
-            } catch (e) { console.error("Hour chart fail", e); }
+            if (window.allSensors) {
+                renderChartFromData(hourChart, window.allSensors, 'hour', 'hourTime');
+            }
         }
 
         async function updateDayChart() {
-            try {
-                const res = await fetch('/api/data_day');
-                if (res.ok) {
-                    const logs = await res.json();
-                    renderChart(dayChart, logs, window.allSensors || [], 12);
-                }
-            } catch (e) { console.error("Day chart fail", e); }
+            if (window.allSensors) {
+                renderChartFromData(dayChart, window.allSensors, 'day', 'dayTime');
+            }
+        }
+
+        function renderChartFromData(chart, sensors, dataKey, timeKey) {
+            if (!sensors || sensors.length === 0) return;
+
+            // Беремо мітки часу з першого датчика (вони однакові для всіх)
+            chart.data.labels = sensors[0][timeKey].map(t => t + " хв");
+
+            chart.data.datasets = sensors.map((s, i) => ({
+                label: s.name,
+                data: s[dataKey],
+                borderColor: s.color || COLORS[i % COLORS.length],
+                tension: 0.3,
+                pointRadius: 0
+            }));
+            chart.update('none');
         }
 
         function renderChart(chart, logs, sensors, labelStep) {
