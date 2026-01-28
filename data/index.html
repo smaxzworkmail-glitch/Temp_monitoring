@@ -177,7 +177,7 @@
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const year = now.getFullYear();
             
-            document.getElementById('timeDisplay').textContent = `${hours}:${mins} ${day}.${month}.${year}`;
+            document.getElementById('timeDisplay').textContent = `${day}.${month}.${year} ${hours}:${mins}`;
         }
 
         function formatTimeLabel(minutes) {
@@ -220,7 +220,23 @@
                     updateDataset(hourChart, i, sensor.name, sensor.hour, sensor.hourTime, color, false);
                     updateDataset(dayChart, i, sensor.name, sensor.day, sensor.dayTime, color, true);
                 });
+                // Додай це там, де ти отримуєш дані з /logs
+                const logsRes = await fetch('/logs');
+                const logsData = await logsRes.json(); // Отримуємо ["17:34 | 30.0 | 25.7", ...]
 
+                // Очищаємо графік перед заповненням
+                hourChart.data.labels = [];
+                hourChart.data.datasets[0].data = [];
+                hourChart.data.datasets[1].data = [];
+
+                logsData.forEach(line => {
+                    const p = line.split('|').map(s => s.trim());
+                    if (p.length >= 3) {
+                        hourChart.data.labels.push(p[0]); // Час
+                        hourChart.data.datasets[0].data.push(parseFloat(p[1])); // Темп 1
+                        hourChart.data.datasets[1].data.push(parseFloat(p[2])); // Темп 2
+                    }
+                });
                 hourChart.update();
                 dayChart.update();
                 setupChartInteraction();
