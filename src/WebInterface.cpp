@@ -22,7 +22,33 @@ void addLog(String msg) {
     Serial.println(timestampedMsg);
 }
 
-void initWebInterface() {
+void generateFakeData() {
+    time_t now;
+    time(&now);
+    
+    // Генеруємо 60 точок (одна на хвилину)
+    for (int i = 60; i > 0; i--) {
+        time_t fakeTime = now - (i * 60);
+        struct tm * tm_info = localtime(&fakeTime);
+        char tStr[10];
+        strftime(tStr, 10, "%H:%M", tm_info);
+
+        // Математика для плавних ліній
+        float t1 = 45.0 + 15.0 * sin(i * 0.2);
+        float t2 = 30.0 + 10.0 * sin(i * 0.3);
+
+        // Формуємо рядок так, як його чекає твій фронтенд
+        // (Приклад: "14:20 | 45.5 | 31.2")
+        String fakeLog = String(tStr) + " | " + String(t1, 1) + " | " + String(t2, 1);
+        
+        // Додаємо в твою чергу deque<String> systemLogs
+        systemLogs.push_back(fakeLog);
+        if (systemLogs.size() > 100) systemLogs.pop_front();
+    }
+    Serial.println("Seed data generated for charts.");
+}
+
+AsyncWebServer* initWebInterface() {
 
     // Головна сторінка
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -233,4 +259,5 @@ void initWebInterface() {
     });
 
     server.begin();
+    return &server;
 }

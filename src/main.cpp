@@ -42,7 +42,9 @@ void setup() {
     Serial.printf("Знайдено датчиків: %d\n", getSensors().size());
 
     // Запускаємо Веб-сервер
-    initWebInterface(); 
+    AsyncWebServer* serverPtr = initWebInterface(); 
+    initSystemService(serverPtr);
+    generateFakeData();
 }
 
 void loop() {
