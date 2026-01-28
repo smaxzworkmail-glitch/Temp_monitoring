@@ -10,8 +10,15 @@ AppConfig appConfig;
 
 void setup() {
     Serial.begin(115200);
-    delay(1000);
+    delay(500);
 
+
+    // Діагностика причини рестарту
+    esp_reset_reason_t r0 = esp_reset_reason();
+    Serial.printf("Reset reason (CPU0): %d\n", (int)r0);
+    Serial.printf("Free heap: %u\n", ESP.getFreeHeap());
+    Serial.printf("Chip revision: %u\n", ESP.getChipRevision());
+    // Продовжити штатну ініціалізацію...
     // Ініціалізація файлової системи
     if (!initStorage()) {
         Serial.println("Помилка LittleFS!");

@@ -296,7 +296,14 @@
             
             // Показуємо дані
             if (dataIndex >= 0 && dataIndex < dataLength) {
-                let tooltipText = '<strong>Значення:</strong><br>';
+                const now = new Date();
+                const currentDate = new Date(now.getTime() - (dataLength - dataIndex) * 60000); // Прибліжна дата
+                const day = String(currentDate.getDate()).padStart(2, '0');
+                const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const hours = String(currentDate.getHours()).padStart(2, '0');
+                const mins = String(currentDate.getMinutes()).padStart(2, '0');
+                
+                let tooltipText = `<strong>${day}.${month} ${hours}:${mins}</strong><br>`;
                 let hasData = false;
                 
                 chart.data.datasets.forEach(dataset => {

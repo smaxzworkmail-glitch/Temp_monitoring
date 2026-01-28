@@ -4,6 +4,7 @@
 #include "NTP.h"
 #include "Storage.h"
 #include <deque>
+#include <time.h>
 
 AsyncWebServer server(80);
 
@@ -167,7 +168,7 @@ void initWebInterface() {
         }
     });
 
-    // API для отримання всіх слотів (як було, але розширено)
+    // API для отримання всіх слотів
     server.on("/api/slots", HTTP_GET, [](AsyncWebServerRequest *request){
         JsonDocument doc;
         auto& sensors = getSensors();
@@ -189,10 +190,11 @@ void initWebInterface() {
         request->send(200, "application/json; charset=utf-8", response);
     });
 
-    // API для отримання даних датчиків (JSON)
+    // API для отримання даних датчиків з часовими мітками
     server.on("/api/data", HTTP_GET, [](AsyncWebServerRequest *request){
         JsonDocument doc;
         auto& sensors = getSensors();
+        time_t now = time(nullptr);
         
         for (auto &s : sensors) {
             JsonObject sObj = doc.add<JsonObject>();
@@ -200,20 +202,28 @@ void initWebInterface() {
             sObj["color"] = s.color;
             sObj["current"] = s.currentTemp;
             
-            // Збираємо годинні дані
+            // Збираємо годинні дані (60 точок за останню годину)
             JsonArray hArr = sObj["hour"].to<JsonArray>();
+            JsonArray hTimeArr = sObj["hourTime"].to<JsonArray>();
             int hStart = s.history.hourFull ? s.history.hourIdx : 0;
             int hCount = s.history.hourFull ? MAX_HOUR_POINTS : s.history.hourIdx;
+            
             for (int i = 0; i < hCount; i++) {
                 hArr.add(s.history.hourData[(hStart + i) % MAX_HOUR_POINTS]);
+                // Час у хвилинах від початку
+                hTimeArr.add(i);
             }
             
-            // Збираємо добові дані
+            // Збираємо добові дані (96 точок за останню добу)
             JsonArray dArr = sObj["day"].to<JsonArray>();
+            JsonArray dTimeArr = sObj["dayTime"].to<JsonArray>();
             int dStart = s.history.dayFull ? s.history.dayIdx : 0;
             int dCount = s.history.dayFull ? MAX_DAY_POINTS : s.history.dayIdx;
+            
             for (int i = 0; i < dCount; i++) {
                 dArr.add(s.history.dayData[(dStart + i) % MAX_DAY_POINTS]);
+                // Час у хвилинах (15-хвилинні інтервали)
+                dTimeArr.add(i * 15);
             }
         }
         
