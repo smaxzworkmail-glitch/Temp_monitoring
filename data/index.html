@@ -490,8 +490,17 @@
             const tool = document.getElementById(toolId);
 
             const handleMove = (e) => {
+                // Якщо це дотик, відміняємо стандартну прокрутку сторінки
+                if (e.type === 'touchmove' || e.type === 'touchstart') {
+                    if (e.cancelable) e.preventDefault();
+                }
+
                 const rect = canvas.getBoundingClientRect();
-                const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+                // Отримуємо координату X (або від мишки, або від першого пальця)
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const x = clientX - rect.left;
+
+                // Знаходимо найближчу точку на графіку
                 const points = chart.getElementsAtEventForMode(e, 'index', { intersect: false }, true);
 
                 if (points.length > 0) {
@@ -502,17 +511,38 @@
                     let html = `<strong>${chart.data.labels[idx] || 'Запис'}</strong><br>`;
                     chart.data.datasets.forEach(ds => {
                         const v = ds.data[idx];
-                        if (v !== null) html += `<span style="color:${ds.borderColor}">●</span> ${ds.label}: ${v.toFixed(1)}°C<br>`;
+                        if (v !== null && v !== undefined) {
+                            html += `<span style="color:${ds.borderColor}">●</span> ${ds.label}: ${v.toFixed(1)}°C<br>`;
+                        }
                     });
+
                     tool.innerHTML = html;
                     tool.style.display = 'block';
-                    tool.style.left = Math.min(x + 15, rect.width - 120) + 'px';
+
+                    // Розумне позиціонування тултіпа, щоб він не вилазив за край екрана
+                    const toolWidth = 120;
+                    let posX = x + 15;
+                    if (posX + toolWidth > rect.width) {
+                        posX = x - toolWidth - 15;
+                    }
+                    tool.style.left = posX + 'px';
                 }
             };
 
+            // Слухачі для мишки
             canvas.addEventListener('mousemove', handleMove);
-            canvas.addEventListener('touchstart', handleMove);
-            canvas.addEventListener('mouseleave', () => { cross.style.display = 'none'; tool.style.display = 'none'; });
+            canvas.addEventListener('mouseleave', () => {
+                cross.style.display = 'none';
+                tool.style.display = 'none';
+            });
+
+            // Слухачі для сенсорного екрана (пасивний режим false дозволяє preventDefault)
+            canvas.addEventListener('touchstart', handleMove, { passive: false });
+            canvas.addEventListener('touchmove', handleMove, { passive: false });
+            canvas.addEventListener('touchend', () => {
+                cross.style.display = 'none';
+                tool.style.display = 'none';
+            });
         }
 
         function openSensorModal(id) {
