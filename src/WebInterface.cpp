@@ -135,29 +135,30 @@ AsyncWebServer *initWebInterface()
     // API для Zabbix - окремі слоти
     server.on("/slot", HTTP_GET, [](AsyncWebServerRequest *request)
               {
-        int slotId = 0;
-        if (request->hasParam("id")) {
-            slotId = request->getParam("id")->value().toInt();
+    int slotId = 0;
+    if (request->hasParam("id")) {
+        slotId = request->getParam("id")->value().toInt();
+    }
+    
+    auto& sensors = getSensors();
+    if (slotId >= 0 && slotId < (int)sensors.size()) {
+        JsonDocument doc;
+        doc["id"] = slotId;
+        doc["name"] = sensors[slotId].name;
+        
+        // Якщо температура помилкова — віддаємо null
+        if (sensors[slotId].currentTemp <= -120.0) { 
+            doc["temp"] = nullptr;
+        } else {
+            doc["temp"] = sensors[slotId].currentTemp;
         }
         
-        auto& sensors = getSensors();
-        if (slotId >= 0 && slotId < (int)sensors.size()) {
-            JsonDocument doc;
-            doc["id"] = slotId;
-            doc["name"] = sensors[slotId].name;
-            
-            if (sensors[slotId].currentTemp > -50.0) {
-                doc["temp"] = sensors[slotId].currentTemp;
-            } else {
-                doc["temp"] = nullptr;
-            }
-            
-            String response;
-            serializeJson(doc, response);
-            request->send(200, "application/json; charset=utf-8", response);
-        } else {
-            request->send(404, "application/json", "{\"error\": \"Slot not found\"}");
-        } });
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json; charset=utf-8", response);
+    } else {
+        request->send(404, "application/json", "{\"error\": \"Slot not found\"}");
+    } });
 
     // API для отримання всіх слотів
     server.on("/api/slots", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -204,10 +205,14 @@ AsyncWebServer *initWebInterface()
         time_t hBaseTime = now - (hCount * 60); 
 
         for (int i = 0; i < hCount; i++) {
-            hArr.add(s.history.hourData[(hStart + i) % MAX_HOUR_POINTS]);
-            // Додаємо реальний час для кожної точки
-            hTimeArr.add(hBaseTime + (i * 60)); 
-        }
+    float val = s.history.hourData[(hStart + i) % MAX_HOUR_POINTS];
+    if (val <= -120.0) {
+        hArr.add(nullptr); // Перетворюється на null в JSON
+    } else {
+        hArr.add(val);
+    }
+    hTimeArr.add(hBaseTime + (i * 60)); 
+}
         
         // --- ДОБОВІ ДАНІ ---
         JsonArray dArr = sObj["day"].to<JsonArray>();
@@ -219,10 +224,14 @@ AsyncWebServer *initWebInterface()
         time_t dBaseTime = now - (dCount * 900);
 
         for (int i = 0; i < dCount; i++) {
-            dArr.add(s.history.dayData[(dStart + i) % MAX_DAY_POINTS]);
-            // Додаємо реальний час для кожної точки
-            dTimeArr.add(dBaseTime + (i * 900));
-        }
+    float val = s.history.dayData[(dStart + i) % MAX_DAY_POINTS];
+    if (val <= -120.0) {
+        dArr.add(nullptr); // Перетворюється на null в JSON
+    } else {
+        dArr.add(val);
+    }
+    dTimeArr.add(dBaseTime + (i * 900));
+}
     }
     
     

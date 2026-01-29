@@ -23,6 +23,8 @@ struct TemperatureSensor {
     DeviceAddress address;
     String name;
     float dayAccumulator = 0;
+    String customMessage; // Для вашого тексту
+    float targetTemp;     // Для цільової температури
     int daySamplesCount = 0;
     float currentTemp;
     float lastValues[5]; // Останні 5 значень для фільтра

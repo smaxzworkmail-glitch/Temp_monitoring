@@ -431,19 +431,20 @@
         function renderChartFromData(chart, sensors, dataKey, timeKey) {
             if (!sensors || sensors.length === 0) return;
 
-            // Беремо мітки часу з першого датчика (вони однакові для всіх)
             chart.data.labels = sensors[0][timeKey].map(t => {
-                let d = new Date(t * 1000); // Unix TS в мілісекунди
+                let d = new Date(t * 1000);
                 return d.getHours().toString().padStart(2, '0') + ':' +
                     d.getMinutes().toString().padStart(2, '0');
             });
 
             chart.data.datasets = sensors.map((s, i) => ({
                 label: s.name,
-                data: s[dataKey],
+                // МОДИФІКАЦІЯ ТУТ: замінюємо помилкові значення на null
+                data: s[dataKey].map(v => (v <= -50 || v === 0) ? null : v),
                 borderColor: s.color || COLORS[i % COLORS.length],
                 tension: 0.3,
-                pointRadius: 0
+                pointRadius: 0,
+                spanGaps: true // ДОДАЙ ЦЕ: щоб лінія з'єднувала точки через пропуски
             }));
             chart.update('none');
         }
